@@ -1,0 +1,20 @@
+#Database
+DATABASE_HOST="127.0.0.1"
+DATABASE_PORT=3306
+DATABASE_USER="root"
+DATABASE_PASSWORD=""
+DATABASE_NAME="db_host_2"
+
+#RabbitMQ Server
+RABBITMQ_SERVER_HOST="127.0.0.1"
+RABBITMQ_SERVER_PORT=""
+
+#Database Sync Server
+DB_SYNC_SERVER="127.0.0.1"
+DB_SYNC_PORT=""
+
+#Database Sync Client
+HOST_ID=2
+HOST_NAME="CLIENT #2"
+HOST_TOPIC="client2_topic"
+HOST_QUEUE="client2_queue"
