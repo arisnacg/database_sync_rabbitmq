@@ -48,7 +48,7 @@ class Sender(object):
         self.rabbitMQClose()
     
     def getOutbox(self):
-        res = self.db.select("SELECT `id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `timestamping`, `priority` FROM outbox WHERE is_sent=0")
+        res = self.db.select("SELECT `id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `timestamping`, `processed_on` FROM outbox WHERE is_sent=0")
         return res
     
     def publishOutbox(self, outbox):
@@ -62,7 +62,7 @@ class Sender(object):
             "timestamping": outbox[7].strftime("%Y-%m-%d %H:%M:%S"),
             "id_sender": self.hostId,
             "sender_name": self.hostName,
-            "priority": outbox[8]
+            "processed_on": outbox[8]
         }
         self.channel.basic_publish(
             exchange=self.exchange,

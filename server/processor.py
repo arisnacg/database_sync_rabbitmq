@@ -22,13 +22,17 @@ class Processor(object):
     
     def getInbox(self):
         res = self.db.select("SELECT `id`, `query`, `type`, `table`, `pk`, `timestamping`, `id_sender`\
-             FROM inbox WHERE is_process=0 ORDER BY priority")
+             FROM inbox WHERE is_process=0")
         return res
     
     def executeQueryInbox(self, inbox):
         res = False
         if(inbox[2] == 1):
             res = self.queryInsert(inbox)
+        elif(inbox[2] == 2):
+            res = self.queryUpdate(inbox)
+        elif(inbox[2] == 3):
+            res = self.queryDelete(inbox)
         return res
 
         
@@ -37,7 +41,8 @@ class Processor(object):
         lastId = self.db.insert(inbox[1])
         if(lastId):
             print("[+] Query successfully exectued")
-            queryUpdate = "UPDATE %s SET id=%d WHERE id=%d" % (inbox[3], lastId, inbox[4])
+            pkName = self.getPrimaryKeyName(inbox[3])
+            queryUpdate = "UPDATE %s SET %s=%d WHERE %s=%d" % (inbox[3], pkName, lastId, pkName, inbox[4])
             queryOutbox = "INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `timestamping`, `send_to`, `label`) \
                 VALUES (\"%s\", '%s', '%d', '%s', '%s', '%s', '%s', '%s')" % (
                     queryUpdate, inbox[3], lastId, inbox[4], 2, inbox[5], inbox[6], "UPDATE_PRIMARY_KEY"
@@ -49,9 +54,47 @@ class Processor(object):
         else:
             print("[-] Query failed to exectued")
             return False
+
+    #fucn query update
+    ###########################################################################
+    def queryUpdate(self, inbox):
+        #melanjutkan proses
+        print("[*] Query update => %s" % inbox[1])
+        res = self.db.update(inbox[1])
+        if(res):
+            print("[+] Query successfully executed")
+            self.updateInboxProccess(inbox[0])
+            return True
+        else:
+            print("[-] Query failed to exectued : %s" % (inbox[1]))
+            self.updateInboxProccessedOn(inbox[0])
+            return False
+
+    def queryDelete(self, inbox):
+        #melanjutkan proses
+        print("[*] Query delete => %s" % inbox[1])
+        res = self.db.delete(inbox[1])
+        if(res):
+            print("[+] Query successfully executed")
+            self.updateInboxProccess(inbox[0])
+            return True
+        else:
+            print("[-] Query failed to exectued")
+            self.updateInboxProccessedOn(inbox[0])
+            return False
     
     def updateInboxProccess(self, id):
-        self.db.insert("UPDATE inbox SET is_process=1 WHERE id=%d" % id)       
+        self.db.insert("UPDATE inbox SET is_process=1 WHERE id=%d" % id)     
+
+    #mendapatkan nama kolom primary key
+    ###########################################################################
+    def getPrimaryKeyName(self, tableName):
+        res = self.db.select("SELECT key_column_usage.column_name\
+            FROM information_schema.key_column_usage\
+            WHERE table_schema = SCHEMA()\
+            AND constraint_name = 'PRIMARY'\
+            AND table_name = '%s'" % tableName)
+        return res[0][0]
     
     def process(self):
         while(True):

@@ -13,8 +13,9 @@ db.connect()
 
 i = 1
 while(True):
-    query = "INSERT INTO tb_mahasiswa(nim, nama) VALUES ('%s', '%s')" % ("160555"+str(i), "Mahasiswa #"+str(i))
+    query = "INSERT INTO tb_mahasiswa(nim, nama) VALUES ('%s', '%s')" % ("160555"+str(i), "CLIENT 1 #"+str(i))
     db.insert(query)
     print(query)
     i += 1
-    time.sleep(1)
+    if(i > 10):
+        break
