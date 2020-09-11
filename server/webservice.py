@@ -1,6 +1,7 @@
 import flask
 from flask import request, jsonify
 from database import Database
+from datetime import datetime
 import env
 
 app = flask.Flask(__name__)
@@ -32,13 +33,15 @@ def registrasiClient():
 
     if(len(res) > 0):
         return jsonify(status=False, message="Nama client sudah digunakan. Silahkan coba dengan yang lain"), 200
-    lastId = db.insert("INSERT INTO clients(name) VALUES ('%s')" % name)
+    curTime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lastId = db.insert("INSERT INTO clients(name, created_at) VALUES ('%s', '%s')" % (name, curTime))
     topic = "client%d_topic" % lastId
     queue = "client%d_queue" % lastId
-    db.update("UPDATE clients SET topic='%s', queue='%s' WHERE id=%d" %
-              (topic, queue, lastId))
+    curTime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    db.update("UPDATE clients SET topic='%s', queue='%s', updated_at='%s' WHERE id=%d" %
+              (topic, queue, curTime, lastId))
 
     return jsonify(status=True, id=lastId, topic=topic, queue=queue, message=("Registrasi client : %s berhasil" % name)), 200
 
 
-app.run(host='0.0.0.0', port=80)
+app.run(host='0.0.0.0', port=5000)

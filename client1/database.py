@@ -31,6 +31,11 @@ class Database(object):
         cursor.close()
         return res
 
+    def count(self, query):
+        cursor = self.db.cursor()
+        cursor.execute(query)
+        return cursor.fetchone()
+
     def update(self, query):
         cursor = self.db.cursor()
         cursor.execute(query)
