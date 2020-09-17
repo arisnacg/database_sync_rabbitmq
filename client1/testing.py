@@ -11,11 +11,7 @@ db = Database(
 )
 db.connect()
 
-i = 1
-while(True):
-    query = "INSERT INTO tb_mahasiswa(nim, nama) VALUES ('%s', '%s')" % ("160555"+str(i), "CLIENT 1 #"+str(i))
-    db.insert(query)
+for i in range(50, 100):
+    query = "INSERT INTO tb_buku(nama_buku) VALUES ('%s')" % ("Buku-"+str(i+1))
     print(query)
-    i += 1
-    if(i > 10):
-        break
+    db.insert(query)

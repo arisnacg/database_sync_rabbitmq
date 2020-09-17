@@ -61,14 +61,9 @@ class Processor(object):
         #melanjutkan proses
         print("[*] Query update => %s" % inbox[1])
         res = self.db.update(inbox[1])
-        if(res):
-            print("[+] Query successfully executed")
-            self.updateInboxProccess(inbox[0])
-            return True
-        else:
-            print("[-] Query failed to exectued : %s" % (inbox[1]))
-            self.updateInboxProccessedOn(inbox[0])
-            return False
+        print("[+] Query successfully executed")
+        self.updateInboxProccess(inbox[0])
+        return True
 
     def queryDelete(self, inbox):
         #melanjutkan proses
@@ -84,7 +79,13 @@ class Processor(object):
             return False
     
     def updateInboxProccess(self, id):
-        self.db.insert("UPDATE inbox SET is_process=1 WHERE id=%d" % id)     
+        self.db.insert("UPDATE inbox SET is_process=1 WHERE id=%d" % id)
+
+    def updateInboxProccessedOn(self, id):
+        processedOn = time.strftime('%Y-%m-%d %H:%M:%S')
+        self.db.update(
+            "UPDATE inbox SET processed_on='%s' WHERE id=%d" % (processedOn, id))
+        print("[*] UPDATE Processed On Time => %s" % processedOn)     
 
     #mendapatkan nama kolom primary key
     ###########################################################################

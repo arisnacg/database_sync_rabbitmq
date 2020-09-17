@@ -8,6 +8,8 @@ from database import Database
 
 class Processor(object):
     def __init__(self):
+        self.loopCount = 0
+        self.inboxCount = 0
         self.delayTime = 1
         self.databaseConnection()
         self.pkCorrectionStatus = False
@@ -41,6 +43,16 @@ class Processor(object):
         res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `timestamping`, `id_sender`, `processed_on`, `label`, `is_process`\
              FROM inbox WHERE id=%d" % id)
         return res[0]
+    
+     # menampilkan info
+    ###########################################################################
+    def printInfo(self, inbox):
+        pkCorrection = "no"
+        if(self.pkCorrectionStatus):
+            pkCorrection = "yes"
+        print("\n====================================================")
+        print("[ID: %d] [Loop : %d] [Inbox: %d] [PK correction: %s]" % (inbox[0], self.loopCount, self.inboxCount, pkCorrection))
+        print("----------------------------------------------------")
 
     # mengexcute query dari inbox
     ###########################################################################
@@ -48,14 +60,14 @@ class Processor(object):
         res = False
         # jika bertipe insert
         if(inbox[2] == 1):
-            # jika update memiliki label PRI
+            res = self.queryInsert(inbox)
+        # jika bertipe update
+        elif(inbox[2] == 2):
+             # jika update memiliki label PRI
             if(inbox[9] == self.label["updatePrimaryKey"]):
                 res = self.queryPrimaryKey(inbox)
             else:
-                res = self.queryInsert(inbox)
-        # jika bertipe update
-        elif(inbox[2] == 2):
-            res = self.queryUpdate(inbox)
+                res = self.queryUpdate(inbox)
         # jika bertipe delete
         elif(inbox[2] == 3):
             res = self.queryDelete(inbox)
@@ -64,12 +76,13 @@ class Processor(object):
     # func query insert
     ###########################################################################
     def queryInsert(self, inbox):
-        print("[*] INSERT => %s" % inbox[1])
+        self.printInfo(inbox)
+        print("[>] QUERY: INSERT\n%s" % inbox[1])
         # cek apakah primary key sudah terpakai
         pkName = self.getPrimaryKeyName(inbox[3])
         queryCek = "SELECT COUNT(*) FROM %s WHERE %s=%d" % (
             inbox[3], pkName, inbox[4])
-        print("[*] Checking for PK : %s" % queryCek)
+        # print("[*] Checking for PK : %s" % queryCek)
         # self.db.count(queryCek)
         success = False
         while(not success):
@@ -79,21 +92,26 @@ class Processor(object):
             except:
                 success = False
         if(lastId):
-            print("[+] INSERT => Successfully executed")
+            print("[>] Successfully executed")
             self.updateInboxProccess(inbox[0])
             if(lastId != inbox[4]):
-                print(
-                    "[+] WARNING => Primary key is different => ID[%d] - Inbox[%d] " % (lastId, inbox[4]))
+                
+                print("[>] Primary key from Inbox: %d" % inbox[4])
+                print("[>] Primary key from DB   : %d" % lastId)
                 # membuat UPDATE PRIMARY KEY
                 self.createUpdatePrimaryKey(inbox, lastId)
                 self.updatePkCorrectionStatus()
         else:
-            print("[-] INSERT => Failed to executed")
+            print("[>] Failed to executed")
         return False
 
     # fucn query update
     ###########################################################################
     def queryUpdate(self, inbox):
+        self.printInfo(inbox)
+        if(self.pkCorrectionStatus):
+            print("[>] INBOX SKIPPED")
+            return False
         # melanjutkan proses
         print("[*] Query update => %s" % inbox[1])
         label = inbox[9]
@@ -113,8 +131,8 @@ class Processor(object):
             if(inbox[4] != inbox[5]):
                 print("[*] UPDATE PRIMARY KEY is different")
                 # cek apakah primary key sudah terpakai
-                queryCek = "SELECT COUNT(*) FROM %s WHERE id=%d" % (
-                    inbox[3], inbox[4])
+                pkName = self.getPrimaryKeyName(inbox[3])
+                queryCek = "SELECT COUNT(*) FROM %s WHERE %s=%d" % (inbox[3], pkName, inbox[4])
                 print("[*] Checking for PK : %s" % queryCek)
                 res = self.db.count(queryCek)
                 if(res[0] > 0):
@@ -149,48 +167,36 @@ class Processor(object):
     # 4 => pk
     # 5 => previous pk
     def queryPrimaryKey(self, inbox):
-        # mengambil prev_pk untuk tabel dari inbox
-        try:
-            prevPKUpdate = self.prevPK[inbox[3]]
-        except:
-            prevPKUpdate = 0
-        print("PREV UPDATE KEY : %d" % self.prevPK)
-
+        self.printInfo(inbox)
+        inbox = self.getInboxById(inbox[0])
+        print("[>] QUERY: PRI\n%s" % inbox[1])
         # jika prev_pk sama denga prev_pk update update sebelumnya
-        if((inbox[5] == prevPKUpdate) or (inbox[4] == inbox[5])):
+        if((inbox[4] == inbox[5])):
             # memperbarui inbox menggunakan id
             inbox = self.getInboxById(inbox[0])
-            # set prev_pk dari class menjadi default 0 untuk tabel ini
-            self.prevPK[inbox[3]] = 0
             # update status dan datetime process
             self.updateInboxProccess(inbox[0])
             self.updateInboxProccessedOn(inbox[0])
             self.updatePkCorrectionStatus()
+            print("[>] Previous PK is same! PK correction end")
             return True
 
         # jika pk dan prev_pk dari inbox berbeda
         elif(inbox[4] != inbox[5]):
-            print("[*] UPDATE PRIMARY KEY is different")
+            print("[>] Previous PK is different!")
+            # print("[*] UPDATE PRIMARY KEY is different")
             # cek apakah primary key sudah terpakai
-            queryCek = "SELECT COUNT(*) FROM %s WHERE id=%d" % (
-                inbox[3], inbox[4])
-            print("[*] Checking for PK : %s" % queryCek)
-            res = self.db.count(queryCek)
-            # jika sudah pk sudah terpakai
-            if(res[0] > 0):
+            pkName = self.getPrimaryKeyName(inbox[3])
                 # find pesan PRI di tabel inbox dengan pk (next)
-                targetSwapInbox = self.getUpdatePrimaryKeyForSwap(inbox)
-                if(targetSwapInbox):
-                    # swap
-                    return self.swapUpdatePrimaryKey(inbox, targetSwapInbox)
-                return False
+            targetSwapInbox = self.getUpdatePrimaryKeyForSwap(inbox)
+            if(targetSwapInbox):
+                print("[>] Target swap is found")
+                # swap
+                return self.swapUpdatePrimaryKey(inbox, targetSwapInbox)
             else:
-                # execute query PRI
-                self.db.update(inbox[1])
-                self.updateInboxProccess(inbox[0])
-                self.updateInboxProccessedOn(inbox[0])
-                self.updatePkCorrectionStatus()
-                return True
+                print("[>] Target swap is not found")
+                print("[>] INBOX SKIPPED")
+                return False
 
     # fucn query delete
     ###########################################################################
@@ -222,32 +228,48 @@ class Processor(object):
     # menurkar primary key
     ###########################################################################
     def swapUpdatePrimaryKey(self, inbox1, inbox2):
-        print("[+] Swapping inbox [%d] - inbox [%d]" % (inbox1[0], inbox2[0]))
+        print("[>] Swapping Primary Key")
+        print("[>] INBOX 1 : [ PK: %d ] [ Prev PK: %d  ]" % (inbox1[4], inbox1[5]))
+        print("[>] INBOX 2 : [ PK: %d ] [ Prev PK: %d  ]" % (inbox2[4], inbox2[5]))
         # mengambil query dari inbox
         queryUpdateInbox = inbox1[1]
         # mengambil nama kolom primary key dari inbox
         pkName = self.getPrimaryKeyName(inbox1[3])
+        #toggle kolom pk correction
+        self.updateColumnPKCorrection(inbox1[3], pkName, inbox1[5], 1)
         # mengupdate row di tabel tujuan menjadi 0
-        self.db.update("UPDATE %s SET %s = 0 WHERE %s = %d" %
-                       (inbox1[3], pkName, pkName, inbox1[4]))
+        query = "UPDATE %s SET %s = 0, pk_correction = 1 WHERE %s = %d" %(inbox1[3], pkName, pkName, inbox1[4])
+        self.db.update(query)
+        print(query)
         # mengupdate pk row di tabel menjadi pk dari inbox
         self.db.update(queryUpdateInbox)
+        print(queryUpdateInbox)
+        self.updateColumnPKCorrection(inbox1[3], pkName, inbox1[4], 0)
         # update flag sudah diproses
         self.updateInboxProccess(inbox1[0])
         # update datetime kapan diproses
         self.updateInboxProccessedOn(inbox1[0])
+        print("[>] INBOX 1 successfuly proccessed")
         # mengupdate row yang tadinya 0 menjadi prev_pk dari inbox tadi
-        self.db.update("UPDATE %s SET %s = %d WHERE %s = 0" %
+        self.db.update("UPDATE %s SET %s = %d, pk_correction = 0 WHERE %s = 0" %
                        (inbox1[3], pkName, inbox1[5], pkName))
         # membuat query baru untuk target swap inbox
         newQueryUpdate = "UPDATE %s SET %s = %d WHERE %s = %d" % (
             inbox1[3], pkName, inbox2[4], pkName, inbox1[5])
         # mengupdate query, prev_pk dari target swap inbox dengan yang baru
-        self.db.update("UPDATE inbox SET query = '%s', prev_pk = %d WHERE id = %d" % (
-            newQueryUpdate, inbox1[5], inbox2[0]))
+        query =  "UPDATE inbox SET query = '%s', prev_pk = %d WHERE id = %d" % (newQueryUpdate, inbox1[5], inbox2[0])
+        print("[>] INBOX 2 :  [ Prev PK: %d  ]" % (inbox1[5]))
         # menandai prev pk dari target swap inbox pada tabel yang tadi
-        self.prevPK[inbox1[3]] = inbox2[5]
+        print("[>] Swapping proccess done")
         return True
+
+    
+    # menurkar primary key
+    ###########################################################################
+    def updateColumnPKCorrection(self, table, pkName, pk, value):
+        query = "UPDATE %s SET pk_correction = %d WHERE %s = %d" % (table, value, pkName, pk)
+        print(query)
+        self.db.update(query)
 
     # update status diproses pada inbox
     ###########################################################################
@@ -260,7 +282,7 @@ class Processor(object):
         processedOn = time.strftime('%Y-%m-%d %H:%M:%S')
         self.db.update(
             "UPDATE inbox SET processed_on='%s' WHERE id=%d" % (processedOn, id))
-        print("[*] UPDATE Processed On Time => %s" % processedOn)
+        # print("[*] UPDATE Processed On Time => %s" % processedOn)
 
     # membuat inbox update primary key
     ###########################################################################
@@ -271,9 +293,9 @@ class Processor(object):
         queryInbox = "INSERT INTO inbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`) \
         VALUES (\"%s\", '%s', '%d', '%s', %d, '%s')" % (
             queryUpdate, inbox[3], inbox[4], lastId, 2, "UPDATE_PRIMARY_KEY")
-        self.db.insert(queryInbox)
-        print("[*] UPDATE Primary Key is created automatically => %s" %
-              queryUpdate)
+        lastId = self.db.insert(queryInbox)
+        print("[>] Inbox PRI add to inbox: [ID : %d]" % lastId)
+        # print("[*] UPDATE Primary Key is created automatically => %s" % queryUpdate)
 
     # mendapatkan query khusus update pk dari inbox
     ###########################################################################
@@ -309,11 +331,13 @@ class Processor(object):
     ###########################################################################
     def process(self):
         while(True):
+            self.loopCount += 1
             inboxes = self.getInbox()
-            print("[*] INBOX COUNT : %d" % len(inboxes))
+            self.inboxCount = len(inboxes)
+            # print("[*] INBOX COUNT : %d" % len(inboxes))
             i = 1
             for inbox in inboxes:
-                print("[*] INBOX ID : %d" % inbox[0])
+                # print("[*] INBOX ID : %d" % inbox[0])
                 self.executeQueryInbox(inbox)
                 i += 1
             time.sleep(self.delayTime)

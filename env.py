@@ -9,7 +9,7 @@ RABBITMQ_SERVER_HOST="localhost"
 RABBITMQ_SERVER_PORT=""
 # Database Sync Server
 HOST_ID=0
-HOST_NAME="Server Sinkronisasi"
+HOST_NAME="localhost"
 HOST_QUEUE="server_queue"
-SECRET_KEY="9d6f9c09-94f0-48af-a76d-0d09b8fadfa0" 
+SECRET_KEY="bd56ef9d-2f65-43e0-8b1e-6137913c6fbc" 
             

@@ -127,10 +127,15 @@ class Init(object):
         self.db.execute(
             "ALTER TABLE %s ADD COLUMN `timestamping` DATETIME DEFAULT CURRENT_TIMESTAMP" % tableName)
         print("[+] %s : Kolom timestamping berhasil ditambahkan" % tableName)
+    
+    def addPkCorrectionColumn(self, tableName):
+        self.db.execute(
+            "ALTER TABLE %s ADD COLUMN `pk_correction` tinyint(1) DEFAULT '0'" % tableName)
+        print("[+] %s : Kolom pk_correction berhasil ditambahkan" % tableName)
 
     def getTableName(self):
         res = self.db.select('SELECT table_name FROM information_schema.tables\
-			WHERE table_schema = "%s" AND (table_name NOT IN ("changelog", "inbox", "outbox"))' % (self.dbName))
+			WHERE table_schema = "%s" AND (table_name NOT IN ("changelog", "inbox", "outbox", "clients"))' % (self.dbName))
         return res
 
     def getColumnTable(self, tableName):
@@ -161,6 +166,7 @@ class Init(object):
         tables = self.getTableName()
         for table in tables:
             self.addTimestampingColumn(table[0])
+            self.addPkCorrectionColumn(table[0])
             columns = self.getColumnTable(table[0])
             primaryKey = self.getPrimaryKeyName(table[0])
             self.createTriggerInsert(table[0], primaryKey, columns)
@@ -192,7 +198,7 @@ class Init(object):
     def createTriggerUpdate(self, tableName, primaryKey, columns):
         triggerName = "update_"+tableName
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
-        query = 'CREATE TRIGGER `%s` AFTER UPDATE ON `%s` FOR EACH ROW\
+        query = 'CREATE TRIGGER `%s` AFTER UPDATE ON `%s` FOR EACH ROW BEGIN IF NEW.pk_correction = 0 AND OLD.pk_correction = 0 THEN\
 			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`, `timestamping`) VALUES' % (triggerName, tableName)
         queryValue = '(CONCAT("UPDATE %s SET ' % tableName
         columnsLength = len(columns)
@@ -203,7 +209,7 @@ class Init(object):
                 queryValue += ', '
         queryValue += ' WHERE %s = ' % (primaryKey)
         queryValue += '\'", NEW.' + primaryKey + ',"\''
-        queryValue += '"), "%s", NEW.%s, NEW.%s, 2, NEW.timestamping);' % (
+        queryValue += '"), "%s", NEW.%s, OLD.%s, 2, NEW.timestamping); END IF; END;' % (
             tableName, primaryKey, primaryKey)
         self.db.execute(query+queryValue)
         print('[+] %s : Trigger "%s" => berhasil ditambahkan' %
@@ -219,6 +225,17 @@ class Init(object):
         self.db.execute(query)
         print('[+] %s : Trigger "%s" => berhasil ditambahkan' %
               (tableName, triggerName))
+
+    def dropTriggerAuditLog(self):
+        print("[*] Menghapus trigger audit log di setiap tabel..")
+        tables = self.getTableName()
+        for table in tables:
+            triggerCaption = ["insert", "update", "delete"]
+            for caption in triggerCaption:
+                triggerName = "%s_%s" % (caption, table[0])
+                self.dropTrigger(triggerName)
+                print('[+] %s : Trigger "%s" => dihapus' %
+                      (table[0], triggerName))
 
     def inputServer(self):
 
@@ -282,11 +299,8 @@ SECRET_KEY="%s"
                 print("[x] Koneksi database error. Silahkan input ulang")
 
         mode = int(input("Sinkroniasi [1/2 Arah]? : "))
-        try:
-            self.dropTable("clients")
-            print("[/] Tabel clients => dihapus")
-        except:
-            print("[/] Tabel clients => dihapus")
+        self.dropTable("clients")
+        print("[/] Tabel clients => dihapus")
         if(mode == 1):
             self.truncateTable("inbox")
             print("[/] Tabel inbox => dikosongkan")
@@ -296,6 +310,7 @@ SECRET_KEY="%s"
             print("[/] Tabel changelog => dihapus")
             self.dropTable("outbox")
             print("[/] Tabel outbox => dihapus")
+            self.dropTriggerAuditLog()
         elif(mode == 2):
             self.truncateTable("inbox")
             print("[/] Tabel inbox => dikosongkan")
