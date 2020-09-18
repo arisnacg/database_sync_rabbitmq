@@ -258,6 +258,8 @@ class Processor(object):
             inbox1[3], pkName, inbox2[4], pkName, inbox1[5])
         # mengupdate query, prev_pk dari target swap inbox dengan yang baru
         query =  "UPDATE inbox SET query = '%s', prev_pk = %d WHERE id = %d" % (newQueryUpdate, inbox1[5], inbox2[0])
+        self.db.update(query)
+        # print(query)
         print("[>] INBOX 2 :  [ Prev PK: %d  ]" % (inbox1[5]))
         # menandai prev pk dari target swap inbox pada tabel yang tadi
         print("[>] Swapping proccess done")
