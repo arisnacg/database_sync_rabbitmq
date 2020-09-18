@@ -4,6 +4,11 @@ from database import Database
 from datetime import datetime
 import env
 
+if(not env.IS_SERVER):
+    print("[>] This host is not server")
+    print("[>] Exit")
+    exit()
+
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 db = Database(

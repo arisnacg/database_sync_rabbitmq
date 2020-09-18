@@ -12,7 +12,7 @@ db = Database(
 db.connect()
 
 for i in range(65, 75):
-    query = "INSERT INTO tes(huruf) VALUES ('%s')" % chr(i)
+    query = "INSERT INTO kapital(huruf) VALUES ('%s')" % chr(i)
     print(query)
     db.insert(query)
 
@@ -26,7 +26,7 @@ db = Database(
 db.connect()
 
 for i in range(75,85):
-    query = "INSERT INTO tes(huruf) VALUES ('%s')" % chr(i)
+    query = "INSERT INTO kapital(huruf) VALUES ('%s')" % chr(i)
     print(query)
     db.insert(query)
 
