@@ -3,18 +3,22 @@ import time
 import pika
 import json
 import env
+import sys
 from database import Database
 
 
 class Processor(object):
     def __init__(self):
         self.isServer = env.IS_SERVER
+        if(self.isServer):
+            self.f = open("time_processed_server.txt", "w+")
+        else:
+            self.f = open("time_processed_client.txt", "w+")
         self.loopCount = 0
         self.inboxCount = 0
         self.delayTime = 1
         self.databaseConnection()
-        self.pkCorrectionStatus = False
-        self.prevPK = {}
+        self.pkCorrectionStatus = {}
         self.label = {
             "updatePrimaryKey": "PRI"
         }
@@ -34,14 +38,14 @@ class Processor(object):
     # mengambil data dari inbox
     ###########################################################################
     def getInbox(self):
-        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `timestamping`, `id_sender`, `processed_on`, `label`, `is_process`\
-             FROM inbox WHERE is_process=0 ORDER BY processed_on DESC")
+        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
+             FROM inbox WHERE is_process=0")
         return res
 
     # mengambil data dari inbox
     ###########################################################################
     def getInboxById(self, id):
-        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `timestamping`, `id_sender`, `processed_on`, `label`, `is_process`\
+        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
              FROM inbox WHERE id=%d" % id)
         return res[0]
     
@@ -49,11 +53,11 @@ class Processor(object):
     ###########################################################################
     def printInfo(self, inbox):
         pkCorrection = "no"
-        if(self.pkCorrectionStatus):
+        if(self.getPkCorrectionStatus(inbox[3])):
             pkCorrection = "yes"
-        print("\n====================================================")
-        print("[ID: %d] [Loop : %d] [Inbox: %d] [PK correction: %s]" % (inbox[0], self.loopCount, self.inboxCount, pkCorrection))
-        print("----------------------------------------------------")
+        print("\n==============================================================")
+        print("[ID: %d] [Inbox: %d] [TB: %s] [PK correction: %s]" % (inbox[0], self.inboxCount, inbox[3], pkCorrection))
+        print("--------------------------------------------------------------")
 
     # mengexcute query dari inbox
     ###########################################################################
@@ -97,6 +101,7 @@ class Processor(object):
         while(not success):
             try:
                 lastId = self.db.insert(inbox[1])
+                self.f.write("%f\n" % time.time())
                 success = True
             except:
                 success = False
@@ -108,9 +113,10 @@ class Processor(object):
                 
                 print("[>] Primary key from Inbox: %d" % inbox[4])
                 print("[>] Primary key from DB   : %d" % lastId)
+                sys.exit()
                 # membuat UPDATE PRIMARY KEY
                 self.createUpdatePrimaryKey(inbox, lastId)
-                self.updatePkCorrectionStatus()
+                self.updatePkCorrectionStatus(inbox[3], 1)
         else:
             print("[>] Failed to executed")
         return False
@@ -125,11 +131,12 @@ class Processor(object):
             print("[+] Successfully exectued")
             pkName = self.getPrimaryKeyName(inbox[3])
             queryUpdate = "UPDATE %s SET %s=%d WHERE %s=%d" % (inbox[3], pkName, lastId, pkName, inbox[4])
-            queryOutbox = "INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `timestamping`, `send_to`, `label`) \
+            queryOutbox = "INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `uuid`, `send_to`, `label`) \
                 VALUES (\"%s\", '%s', '%d', '%s', '%s', '%s', '%s', '%s')" % (
                     queryUpdate, inbox[3], lastId, inbox[4], 2, inbox[6], inbox[7], self.label["updatePrimaryKey"]
                 )
             self.db.insert(queryOutbox)
+            self.f.write("%f\n" % time.time())
             # self.updateInboxProccessedOn(inbox[0])
             self.updateInboxProccess(inbox[0])
             return True
@@ -143,15 +150,14 @@ class Processor(object):
         self.printInfo(inbox)
         print("[>] QUERY: UPDATE\n%s" % inbox[1])
         #mengecek pk correction status
-        if(self.pkCorrectionStatus):
+        if(self.getPkCorrectionStatus(inbox[3])):
             print("[>] INBOX SKIPPED")
             return False
         res = self.db.update(inbox[1])
-        if(res):
-            print("[>] Successfully executed")
-            # self.updateInboxProccessedOn(inbox[0])
-            self.updateInboxProccess(inbox[0])
-            return True
+        print("[>] Successfully executed")
+        # self.updateInboxProccessedOn(inbox[0])
+        self.updateInboxProccess(inbox[0])
+        return True
     
     # fucn query update for server
     ###########################################################################
@@ -178,7 +184,7 @@ class Processor(object):
             # update status dan datetime process
             self.updateInboxProccess(inbox[0])
             self.updateInboxProccessedOn(inbox[0])
-            self.updatePkCorrectionStatus()
+            self.updatePkCorrectionStatus(inbox[3], 0)
             print("[>] Previous PK is same! PK correction end")
             return True
 
@@ -204,7 +210,7 @@ class Processor(object):
     def queryDeleteClient(self, inbox):
         self.printInfo(inbox)
         print("[>] QUERY: DELETE\n%s" % inbox[1])
-        if(self.pkCorrectionStatus):
+        if(self.getPkCorrectionStatus(inbox[3])):
             print("[>] INBOX SKIPPED")
             return False
         # melanjutkan proses
@@ -236,7 +242,7 @@ class Processor(object):
     # mendapatkan query khusus update pk dari inbox (swapping)
     ###########################################################################
     def getUpdatePrimaryKeyForSwap(self, inbox):
-        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `timestamping`, `id_sender`, `processed_on`, `label`, `is_process`\
+        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
          FROM inbox WHERE `table` = '%s' AND label = '%s' AND prev_pk=%d AND is_process = 0 ORDER BY id DESC" % (inbox[3], self.label["updatePrimaryKey"], inbox[4]))
         if(len(res) > 0):
             return res[0]
@@ -337,15 +343,19 @@ class Processor(object):
         AND table_name = '%s'" % tableName)
         return res[0][0]
 
+
     # update pk correction status
     ###########################################################################
-    def updatePkCorrectionStatus(self):
-        res = self.db.count(
-            "SELECT COUNT(*) FROM inbox WHERE type=2 AND label = 'UPDATE_PRIMARY_KEY' AND is_process=0")
-        if(res[0] == 0):
-            self.pkCorrectionStatus = False
-        else:
-            self.pkCorrectionStatus = True
+    def getPkCorrectionStatus(self, table):
+        try:
+            return self.getPkCorrectionStatus[table]
+        except:
+            return 0
+
+    # update pk correction status
+    ###########################################################################
+    def updatePkCorrectionStatus(self, table, status):
+        self.pkCorrectionStatus[table] = status
 
     # func untuk menjalankan proccessor
     ###########################################################################
@@ -355,11 +365,9 @@ class Processor(object):
             inboxes = self.getInbox()
             self.inboxCount = len(inboxes)
             # print("[*] INBOX COUNT : %d" % len(inboxes))
-            i = 1
             for inbox in inboxes:
                 # print("[*] INBOX ID : %d" % inbox[0])
                 self.executeQueryInbox(inbox)
-                i += 1
             time.sleep(self.delayTime)
 
     # func untuk menjalankan program
