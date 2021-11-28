@@ -38,15 +38,15 @@ class Processor(object):
     # mengambil data dari inbox
     ###########################################################################
     def getInbox(self):
-        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
+        res = self.db.select("SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
              FROM inbox WHERE is_process=0")
         return res
 
     # mengambil data dari inbox
     ###########################################################################
     def getInboxById(self, id):
-        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
-             FROM inbox WHERE id=%d" % id)
+        res = self.db.select("SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
+             FROM inbox WHERE inbox_id=%d" % id)
         return res[0]
     
      # menampilkan info
@@ -242,8 +242,8 @@ class Processor(object):
     # mendapatkan query khusus update pk dari inbox (swapping)
     ###########################################################################
     def getUpdatePrimaryKeyForSwap(self, inbox):
-        res = self.db.select("SELECT `id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
-         FROM inbox WHERE `table` = '%s' AND label = '%s' AND prev_pk=%d AND is_process = 0 ORDER BY id DESC" % (inbox[3], self.label["updatePrimaryKey"], inbox[4]))
+        res = self.db.select("SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
+         FROM inbox WHERE `table` = '%s' AND label = '%s' AND prev_pk=%d AND is_process = 0 ORDER BY inbox_id DESC" % (inbox[3], self.label["updatePrimaryKey"], inbox[4]))
         if(len(res) > 0):
             return res[0]
         else:
@@ -281,7 +281,7 @@ class Processor(object):
         newQueryUpdate = "UPDATE %s SET %s = %d WHERE %s = %d" % (
             inbox1[3], pkName, inbox2[4], pkName, inbox1[5])
         # mengupdate query, prev_pk dari target swap inbox dengan yang baru
-        query =  "UPDATE inbox SET query = '%s', prev_pk = %d WHERE id = %d" % (newQueryUpdate, inbox1[5], inbox2[0])
+        query =  "UPDATE inbox SET query = '%s', prev_pk = %d WHERE inbox_id = %d" % (newQueryUpdate, inbox1[5], inbox2[0])
         self.db.update(query)
         # print(query)
         print("[>] INBOX 2 :  [ Prev PK: %d  ]" % (inbox1[5]))
@@ -300,14 +300,14 @@ class Processor(object):
     # update status diproses pada inbox
     ###########################################################################
     def updateInboxProccess(self, id):
-        self.db.insert("UPDATE inbox SET is_process=1 WHERE id=%d" % id)
+        self.db.insert("UPDATE inbox SET is_process=1 WHERE inbox_id=%d" % id)
 
     # update waktu diproses pada inbox
     ###########################################################################
     def updateInboxProccessedOn(self, id):
         processedOn = time.strftime('%Y-%m-%d %H:%M:%S')
         self.db.update(
-            "UPDATE inbox SET processed_on='%s' WHERE id=%d" % (processedOn, id))
+            "UPDATE inbox SET processed_on='%s' WHERE inbox_id=%d" % (processedOn, id))
         # print("[*] UPDATE Processed On Time => %s" % processedOn)
 
     # membuat inbox update primary key
@@ -327,7 +327,7 @@ class Processor(object):
     ###########################################################################
     def getUpdatePrimaryKey(self, inbox):
         res = self.db.select(
-            "SELECT `id`, `query`, `pk`, `prev_pk` FROM inbox WHERE `table` = '%s' AND label = 'UPDATE_PRIMARY_KEY' AND pk=%d AND is_process = 0 ORDER BY id DESC" % (inbox[3], inbox[4]))
+            "SELECT `inbox_id`, `query`, `pk`, `prev_pk` FROM inbox WHERE `table` = '%s' AND label = 'UPDATE_PRIMARY_KEY' AND pk=%d AND is_process = 0 ORDER BY inbox_id DESC" % (inbox[3], inbox[4]))
         if(len(res) > 0):
             return res[0]
         else:

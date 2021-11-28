@@ -41,7 +41,7 @@ class Init(object):
   def createTableInbox(self):
     self.db.execute("""
 			CREATE TABLE `inbox` (
-				`id` bigint(20) NOT NULL AUTO_INCREMENT,
+				`inbox_id` bigint(20) NOT NULL AUTO_INCREMENT,
 				`query` text,
 				`type` smallint(6) DEFAULT NULL COMMENT '1 = insert, 2 = update, 3 = delete',
 				`label` varchar(255) DEFAULT NULL,
@@ -56,7 +56,7 @@ class Init(object):
 				`is_process` tinyint(1) DEFAULT '0',
 				`created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
 				`udpated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY (`id`)
+				PRIMARY KEY (`inbox_id`)
 			)
 			""")
     print("[+] Tabel Inbox => berhasil dibuat")
@@ -64,7 +64,7 @@ class Init(object):
   def createTableOutbox(self):
     self.db.execute("""
 			CREATE TABLE `outbox` (
-				`id` bigint(20) NOT NULL AUTO_INCREMENT,
+				`outbox_id` bigint(20) NOT NULL AUTO_INCREMENT,
 				`query` text,
 				`type` smallint(6) DEFAULT NULL COMMENT '1 = insert, 2 = update, 3 = delete',
 				`label` varchar(255) DEFAULT NULL,
@@ -78,7 +78,7 @@ class Init(object):
 				`is_sent` tinyint(1) DEFAULT '0',
 				`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY (`id`)
+				PRIMARY KEY (`outbox_id`)
 			)
 			""")
     print("[+] Tabel Outbox berhasil dibuat")
@@ -86,7 +86,7 @@ class Init(object):
   def createTableChangelog(self):
     self.db.execute("""
 			CREATE TABLE `changelog` (
-				`id` bigint(20) NOT NULL AUTO_INCREMENT,
+				`changelog_id` bigint(20) NOT NULL AUTO_INCREMENT,
 				`query` text,
 				`table` varchar(255) DEFAULT NULL,
 				`pk` bigint(20) DEFAULT NULL,
@@ -95,7 +95,7 @@ class Init(object):
 				`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				`uuid` varchar(36) DEFAULT NULL,
                 `last_update` double DEFAULT NULL,
-				PRIMARY KEY (`id`)
+				PRIMARY KEY (`changelog_id`)
 			)
 			""")
     print("[+] Tabel Changelog => berhasil dibuat")
@@ -103,13 +103,13 @@ class Init(object):
   def createTableClients(self):
     self.db.execute("""
             CREATE TABLE `clients` (
-                `id` int(11) NOT NULL AUTO_INCREMENT,
+                `client_id` int(11) NOT NULL AUTO_INCREMENT,
                 `name` varchar(200) DEFAULT NULL,
                 `topic` varchar(200) DEFAULT NULL,
                 `queue` varchar(200) DEFAULT NULL,
                 `created_at` datetime DEFAULT NULL,
                 `updated_at` datetime DEFAULT NULL,
-                PRIMARY KEY (`id`)
+                PRIMARY KEY (`client_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=latin1
         """)
     print("[+] Tabel Client => berhasil dibuat")

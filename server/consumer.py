@@ -59,7 +59,7 @@ class Consumer(object):
         if not body["send_to"] or str(self.hostId) in body["send_to"].split(";"):
             print("[*] From %s => %s" % (body["sender_name"], body["query"]))
             res = self.db.select(
-                'SELECT id FROM outbox WHERE `query`="%s" \
+                'SELECT outbox_id FROM outbox WHERE `query`="%s" \
                 AND `type`=%d AND `table`="%s" AND `uuid`="%s" AND `last_update`="%s"'
                 % (
                     body["query"],

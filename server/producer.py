@@ -57,7 +57,7 @@ class Producer(object):
 
     def getOutbox(self):
         res = self.db.select(
-            "SELECT `id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `uuid`, `processed_on`, `send_to`, `last_update` FROM outbox WHERE is_sent=0"
+            "SELECT `outbox_id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `uuid`, `processed_on`, `send_to`, `last_update` FROM outbox WHERE is_sent=0"
         )
         return res
 
@@ -79,7 +79,7 @@ class Producer(object):
         self.channel.basic_publish(
             exchange=self.exchange, routing_key=self.topic, body=json.dumps(message)
         )
-        if self.db.update("UPDATE outbox SET is_sent=1 WHERE id=%d" % outbox[0]):
+        if self.db.update("UPDATE outbox SET is_sent=1 WHERE outbox_id=%d" % outbox[0]):
             print("[OUTBOX ID : %d] SUCCESS : %s" % (outbox[0], outbox[1]))
 
     def getLabel(self, type):
