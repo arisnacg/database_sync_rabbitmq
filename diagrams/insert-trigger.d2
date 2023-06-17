@@ -1,0 +1,23 @@
+before-insert: Before Insert {
+  style
+  start-1: Start {
+    shape: oval
+  }
+  set-uuid: Set UUID and last_update
+  end-1: End {
+    shape: oval
+  }
+  start-1 -> set-uuid -> end-1
+}
+
+after-insert: After Insert {
+  start-2: Start {
+    shape: oval
+  }
+  generate-query: Generate query insert
+  store-query: Store query to tb_changelog
+  end-2: End {
+    shape: oval
+  }
+  start-2 -> generate-query -> store-query -> end-2
+}

@@ -1,0 +1,59 @@
+change: changelog {
+  shape: sql_table
+  changelog_id: int {constraint: primary_key}
+  query: text
+  table: varchar
+  pk: int
+  prev_pk: int
+  type: varchar
+  create_at: timestamp
+  uuid: varchar
+  last_update: double
+}
+
+outbox: outbox {
+  shape: sql_table
+  outbox_id: int {constraint: primary_key}
+  query: text
+  type: smallint
+  type_label: varchar
+  table: varchar
+  pk: int
+  prev_pk: int
+  uuid: varchar
+  last_update: double
+  send_to: int
+  sender_name: varchar
+  processed_on: datetime
+  create_at: timestamp
+  updated_at: timestamp
+}
+
+inbox: inbox {
+  shape: sql_table
+  inbox_id: int {constraint: primary_key}
+  query: text
+  type: smallint
+  type_label: varchar
+  table: varchar
+  pk: int
+  prev_pk: int
+  uuid: varchar
+  last_update: double
+  id_sender: int
+  sender_name: varchar
+  processed_on: datetime
+  is_process: tinyint
+  create_at: timestamp
+  updated_at: timestamp
+}
+
+clients: clients {
+  shape: sql_table
+  client_id: int {constraint: primary_key}
+  name: varchar
+  topic: varchar
+  queue: varchar
+  create_at: timestamp
+  updated_at: timestamp
+}

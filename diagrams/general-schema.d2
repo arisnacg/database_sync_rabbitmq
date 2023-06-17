@@ -1,0 +1,145 @@
+direction: right
+client-1: Client A {
+  style: {
+    bold: true
+  }
+  db: database \nClient A {
+    shape: cylinder
+  }
+  producer: producer service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  sync: sync service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  consumer: consumer service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  consumer -> db: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+  db <-> sync: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+  db -> producer: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+}
+
+server: Server {
+  style: {
+    bold: true
+  }
+  db: server\ndatabase {
+    shape: cylinder
+  }
+  producer: producer service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  sync: sync service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  consumer: consumer service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  consumer -> db: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+  db <-> sync: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+  db -> producer: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+}
+
+client-2: Client B {
+  style: {
+    bold: true
+  }
+  db: database \nClient B {
+    shape: cylinder
+  }
+  producer: producer service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  sync: sync service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  consumer: consumer service {
+    icon: https://cdn.worldvectorlogo.com/logos/python-5.svg
+  }
+  consumer -> db: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+  db <-> sync: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+  db -> producer: {
+    style: {
+      stroke-dash: 3
+    }
+  }
+}
+
+rabbitmq: RabbitMQ Message Broker {
+  style: {
+    bold: true
+    font-size: 30
+  }
+  queue-1: client-to-server {
+    shape: queue
+  }
+  queue-2: server-to-client {
+    shape: queue
+  }
+}
+
+client-1.producer -> rabbitmq.queue-1: {
+  style: {
+    stroke-dash: 3
+  }
+}
+client-1.consumer <- rabbitmq.queue-2: {
+  style: {
+    stroke-dash: 3
+  }
+}
+
+client-2.producer -> rabbitmq.queue-1: {
+  style: {
+    stroke-dash: 3
+  }
+}
+client-2.consumer <- rabbitmq.queue-2: {
+  style: {
+    stroke-dash: 3
+  }
+}
+
+server.producer -> rabbitmq.queue-2: {
+  style: {
+    stroke-dash: 3
+  }
+}
+server.consumer <- rabbitmq.queue-1: {
+  style: {
+    stroke-dash: 3
+  }
+}

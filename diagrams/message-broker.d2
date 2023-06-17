@@ -1,0 +1,23 @@
+direction: right
+
+server: Server
+
+broker: RabbitMQ {
+  server-exchange: server exchange
+  server-queue: server-to-client queue
+  server-exchange -> server-queue
+  client-exchange: client exchange
+  client-queue: client-to-server queue
+  client-queue <- client-exchange
+}
+
+server -> broker.server-exchange
+server <- broker.client-queue
+
+client-a: Client A
+broker.server-queue -> client-a
+broker.client-exchange <- client-a
+
+client-b: Client B
+broker.client-exchange <- client-b
+broker.server-queue -> client-b
