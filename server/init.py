@@ -14,7 +14,6 @@ class Init(object):
     self.clientId = ""
     self.clientName = ""
     # db
-    self.db = ""
     self.dbHost = ""
     self.dbPort = ""
     self.dbUser = ""
