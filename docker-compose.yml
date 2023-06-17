@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  mysqldb-server:
+    image: mariadb:10.11.2
+    hostname: mysqldb-server
+    container_name: mysqldb-server
+    ports:
+      - 3306:3306
+    environment:
+      MARIADB_ROOT_PASSWORD: serverpass
+  # mysqldb-client:
+  #   image: mariadb:10.11.2
+  #   hostname: mysqldb-client
+  #   container_name: mysqldb-client
+  #   ports:
+  #     - 3307:3306
+  #   environment:
+  #     MARIADB_ROOT_PASSWORD: clientpass
+  rabbitmq:
+    image: rabbitmq
+    hostname: rabbitmq
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
