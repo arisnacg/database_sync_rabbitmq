@@ -1,0 +1,6 @@
+- name: Deploy MySQL database via Docker
+  hosts: ubuntu-servers
+  gather_facts: false
+  tasks:
+    - name: Remove MySQL container
+      command: docker rm mysql --force

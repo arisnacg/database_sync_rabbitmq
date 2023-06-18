@@ -1,0 +1,8 @@
+- name: Deploy MySQL database via Docker
+  hosts: ubuntu-servers
+  gather_facts: false
+  tasks:
+    - name: Create docker volume
+      command: docker volume create mysql-data
+    - name: Deploy mysql
+      command: docker run --name mysql -v mysql-data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=vagrant -p 3306:3306 -d mysql:8.0.32

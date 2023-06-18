@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Vagrant
+.vagrant/
+.vagrant.d/
+
+# VirtualBox
+*.vbox
+*.vbox-prev
+*.vdi
+*.vmdk
+*.vagrantfile
+
+# VMware
+*.vmx
+*.vmxf
+*.vmsd
+*.nvram
+*.vmwarevm
+
+# Hyper-V
+*.vmcx
+*.vmrs
+
+# Miscellaneous
+/.vagrant
+/.vagrantignore
+
