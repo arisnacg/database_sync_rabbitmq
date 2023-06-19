@@ -1,0 +1,28 @@
+direction: right
+
+server-db: Server DB {
+  shape: cylinder
+}
+server: Server\n192.168.56.1
+server-db <- server
+
+rabbitmq: RabbitMQ
+server <-> rabbitmq
+
+vm-1: VM Client 1 \n192.168.56.2
+vm-1-db: Client 1 DB {
+  shape: cylinder
+}
+
+rabbitmq <-> vm-1
+
+vm-1 -> vm-1-db
+
+vm-2: VM Client 2 \n192.168.56.3
+vm-2-db: Client 2 DB {
+  shape: cylinder
+}
+
+rabbitmq <-> vm-2
+
+vm-2 -> vm-2-db
