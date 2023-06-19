@@ -16,9 +16,10 @@ class Database(object):
         self.db = mysql.connector.connect(
             host=self.host,
             user=self.user,
+            port=self.port,
             passwd=self.password,
             database=self.databaseName,
-            autocommit=True
+            autocommit=True,
         )
 
     def close(self):
@@ -40,7 +41,7 @@ class Database(object):
         cursor = self.db.cursor()
         cursor.execute(query)
         self.db.commit()
-        res = True if(cursor.rowcount > 0) else False
+        res = True if (cursor.rowcount > 0) else False
         cursor.close()
         return res
 
@@ -59,6 +60,6 @@ class Database(object):
         cursor = self.db.cursor()
         cursor.execute(query)
         self.db.commit()
-        res = True if(cursor.rowcount > 0) else False
+        res = True if (cursor.rowcount > 0) else False
         cursor.close()
         return res
