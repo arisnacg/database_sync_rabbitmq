@@ -1,6 +1,10 @@
 # Local .env
 .env
 
+# Testing file
+time_sent_server.txt
+time_processed_server.txt
+
 # Python
 __pycache__/
 *.py[cod]
