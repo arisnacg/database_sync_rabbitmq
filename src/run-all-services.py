@@ -2,7 +2,12 @@
 from subprocess import Popen, PIPE, STDOUT, DEVNULL
 import time
 import curses
+
+# from os import getenv
+from dotenv import load_dotenv
 from prettytable import PrettyTable
+
+load_dotenv()
 
 
 class RunServices:
@@ -16,6 +21,11 @@ class RunServices:
             "producer": producer,
             "consumer": consumer,
         }
+        # if getenv("IS_SERVER"):
+        #     register = Popen(
+        #         "src/register.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT
+        #     )
+        #     services["register"] = register
         # chars = '⠋ ⠙ ⠚ ⠞ ⠖ ⠦ ⠴ ⠲ ⠳ ⠓'
         # loadingstr = '⠋ ⠙ ⠚ ⠒ ⠂ ⠂ ⠒ ⠲ ⠴ ⠦ ⠖ ⠒ ⠐ ⠐ ⠒ ⠓ ⠋'
         # loadingchars = loadingstr.split(' ')
