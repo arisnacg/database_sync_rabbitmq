@@ -10,7 +10,7 @@ load_dotenv()
 
 class Processor(object):
     def __init__(self):
-        self.isServer = getenv("IS_SERVER")
+        self.isServer = int(getenv("IS_SERVER", 0))
         if self.isServer:
             self.f = open("time_processed_server.txt", "w+")
         else:

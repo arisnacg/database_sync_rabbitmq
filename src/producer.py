@@ -106,7 +106,8 @@ class Producer(object):
         try:
             host_type = "Client"
             if self.isServer:
-                type = "Server"
+                host_type = "Server"
+            print("[*] Exchange: %s" % self.exchange)
             print("[*] %s Producer Running..." % host_type)
             self.publish()
         except KeyboardInterrupt:
@@ -118,6 +119,6 @@ producer = Producer(
     rabbitMQPort=getenv("RABBITMQ_SERVER_PORT"),
     hostId=getenv("HOST_ID"),
     hostName=getenv("HOST_NAME"),
-    isServer=getenv("IS_SERVER"),
+    isServer=int(getenv("IS_SERVER", 0)),
 )
 producer.run()

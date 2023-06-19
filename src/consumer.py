@@ -118,6 +118,6 @@ consumer = Consumer(
     hostId=getenv("HOST_ID"),
     hostName=getenv("HOST_NAME"),
     queue=getenv("HOST_QUEUE"),
-    isServer=getenv("IS_SERVER"),
+    isServer=int(getenv("IS_SERVER", 0)),
 )
 consumer.run()

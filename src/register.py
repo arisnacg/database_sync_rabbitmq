@@ -7,7 +7,8 @@ from os import getenv
 
 load_dotenv()
 
-if not getenv("IS_SERVER"):
+IS_SERVER = int(getenv("IS_SERVER", 0))
+if not IS_SERVER:
     print("[>] This host is not server")
     print("[>] Exit")
     exit()
