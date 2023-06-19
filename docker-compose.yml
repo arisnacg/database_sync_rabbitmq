@@ -9,14 +9,16 @@ services:
       - 3306:3306
     environment:
       MYSQL_ROOT_PASSWORD: serverpass
+
   mysqldb-client:
     image: 1fecb86b5237
-    hostname: mysqldb-server
+    hostname: mysqldb-client
     container_name: mysqldb-client
     ports:
       - 3307:3306
     environment:
       MYSQL_ROOT_PASSWORD: clientpass
+
   rabbitmq:
     image: rabbitmq
     hostname: rabbitmq
