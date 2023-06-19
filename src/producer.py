@@ -4,7 +4,10 @@ from database import Database
 import time
 import pika
 import json
-import env
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Producer(object):
@@ -32,11 +35,11 @@ class Producer(object):
 
     def databaseConnection(self):
         self.db = Database(
-            host=env.DATABASE_HOST,
-            port=env.DATABASE_PORT,
-            user=env.DATABASE_USER,
-            password=env.DATABASE_PASSWORD,
-            databaseName=env.DATABASE_NAME,
+            host=os.getenv("DATABASE_HOST"),
+            port=os.getenv("DATABASE_PORT"),
+            user=os.getenv("DATABASE_USER"),
+            password=os.getenv("DATABASE_PASSWORD"),
+            databaseName=os.getenv("DATABASE_NAME"),
         )
         self.db.connect()
 
@@ -100,18 +103,21 @@ class Producer(object):
             time.sleep(self.delayTime)
 
     def run(self):
-        type = "Client"
-        if self.isServer:
-            type = "Server"
-        print("[*] %s Producer Running..." % type)
-        self.publish()
+        try:
+            host_type = "Client"
+            if self.isServer:
+                type = "Server"
+            print("[*] %s Producer Running..." % host_type)
+            self.publish()
+        except KeyboardInterrupt:
+            print("\nExit..")
 
 
 producer = Producer(
-    rabbitMQServer=env.RABBITMQ_SERVER_HOST,
-    rabbitMQPort=env.RABBITMQ_SERVER_PORT,
-    hostId=env.HOST_ID,
-    hostName=env.HOST_NAME,
-    isServer=env.IS_SERVER,
+    rabbitMQServer=os.getenv("RABBITMQ_SERVER_HOST"),
+    rabbitMQPort=os.getenv("RABBITMQ_SERVER_PORT"),
+    hostId=os.getenv("HOST_ID"),
+    hostName=os.getenv("HOST_NAME"),
+    isServer=os.getenv("IS_SERVER"),
 )
 producer.run()

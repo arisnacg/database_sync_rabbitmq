@@ -7,9 +7,9 @@ from prettytable import PrettyTable
 
 class RunServices:
     def pbar(self, window):
-        processor = Popen("./processor.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
-        producer = Popen("./producer.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
-        consumer = Popen("./consumer.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+        processor = Popen("src/processor.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+        producer = Popen("src/producer.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+        consumer = Popen("src/consumer.py", stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
 
         services = {
             "processor": processor,
@@ -52,4 +52,8 @@ class RunServices:
             if curses.has_colors():
                 curses.start_color()
         except KeyboardInterrupt:
-            print("Exit..")
+            print("\nExit..")
+
+
+app = RunServices()
+app.run()

@@ -2,9 +2,12 @@ import flask
 from flask import request, jsonify
 from database import Database
 from datetime import datetime
-import env
+from dotenv import load_dotenv
+import os
 
-if not env.IS_SERVER:
+load_dotenv()
+
+if not os.getenv("IS_SERVER"):
     print("[>] This host is not server")
     print("[>] Exit")
     exit()
@@ -12,11 +15,11 @@ if not env.IS_SERVER:
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 db = Database(
-    host=env.DATABASE_HOST,
-    port=env.DATABASE_PORT,
-    user=env.DATABASE_USER,
-    password=env.DATABASE_PASSWORD,
-    databaseName=env.DATABASE_NAME,
+    host=os.getenv("DATABASE_HOST"),
+    port=os.getenv("DATABASE_PORT"),
+    user=os.getenv("DATABASE_USER"),
+    password=os.getenv("DATABASE_PASSWORD"),
+    databaseName=os.getenv("DATABASE_NAME"),
 )
 db.connect()
 
@@ -30,7 +33,7 @@ def index():
 def registrasiClient():
     name = request.form.get("name")
     secretKey = request.form.get("secretKey")
-    if secretKey != env.SECRET_KEY:
+    if secretKey != os.getenv("SECRET_KEY"):
         return jsonify(status=False, message="Secret key untuk registrasi salah"), 200
     if not name:
         return jsonify(status=False, message="Nama client diperlukan"), 200
@@ -52,7 +55,7 @@ def registrasiClient():
     queue = "client%d_queue" % lastId
     curTime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     db.update(
-        "UPDATE clients SET topic='%s', queue='%s', updated_at='%s' WHERE id=%d"
+        "UPDATE clients SET topic='%s', queue='%s', updated_at='%s' WHERE client_id=%d"
         % (topic, queue, curTime, lastId)
     )
 

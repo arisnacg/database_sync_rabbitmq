@@ -339,7 +339,7 @@ class Init(object):
 
         self.rmqHost = input("[+] RabbitMQ Host\t: ")
         self.secretKey = uuid.uuid4()
-        file = open("./src/env.py", "w")
+        file = open(".env", "w")
         file.write(
             """# Database
 DATABASE_HOST="%s"
@@ -438,7 +438,7 @@ IS_SERVER=1
             except:
                 print("[x] Terjadi gangguan. Coba beberapa saat lagi")
 
-        file = open("env.py", "w")
+        file = open(".env", "w")
         file.write(
             """# Database
 DATABASE_HOST="%s"
