@@ -9,14 +9,14 @@ services:
       - 3306:3306
     environment:
       MYSQL_ROOT_PASSWORD: serverpass
-  # mysqldb-client:
-  #   image: mariadb:10.11.2
-  #   hostname: mysqldb-client
-  #   container_name: mysqldb-client
-  #   ports:
-  #     - 3307:3306
-  #   environment:
-  #     MARIADB_ROOT_PASSWORD: clientpass
+  mysqldb-client:
+    image: 1fecb86b5237
+    hostname: mysqldb-server
+    container_name: mysqldb-client
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: clientpass
   rabbitmq:
     image: rabbitmq
     hostname: rabbitmq
