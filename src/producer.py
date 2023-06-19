@@ -4,7 +4,7 @@ from database import Database
 import time
 import pika
 import json
-import os
+from os import getenv
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,11 +35,11 @@ class Producer(object):
 
     def databaseConnection(self):
         self.db = Database(
-            host=os.getenv("DATABASE_HOST"),
-            port=os.getenv("DATABASE_PORT"),
-            user=os.getenv("DATABASE_USER"),
-            password=os.getenv("DATABASE_PASSWORD"),
-            databaseName=os.getenv("DATABASE_NAME"),
+            host=getenv("DATABASE_HOST"),
+            port=getenv("DATABASE_PORT"),
+            user=getenv("DATABASE_USER"),
+            password=getenv("DATABASE_PASSWORD"),
+            databaseName=getenv("DATABASE_NAME"),
         )
         self.db.connect()
 
@@ -114,10 +114,10 @@ class Producer(object):
 
 
 producer = Producer(
-    rabbitMQServer=os.getenv("RABBITMQ_SERVER_HOST"),
-    rabbitMQPort=os.getenv("RABBITMQ_SERVER_PORT"),
-    hostId=os.getenv("HOST_ID"),
-    hostName=os.getenv("HOST_NAME"),
-    isServer=os.getenv("IS_SERVER"),
+    rabbitMQServer=getenv("RABBITMQ_SERVER_HOST"),
+    rabbitMQPort=getenv("RABBITMQ_SERVER_PORT"),
+    hostId=getenv("HOST_ID"),
+    hostName=getenv("HOST_NAME"),
+    isServer=getenv("IS_SERVER"),
 )
 producer.run()

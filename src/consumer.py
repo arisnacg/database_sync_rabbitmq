@@ -1,9 +1,7 @@
 #! /bin/python3
-import os
-import time
 import pika
 import json
-import os
+from os import getenv
 from dotenv import load_dotenv
 from database import Database
 
@@ -33,11 +31,11 @@ class Consumer(object):
 
     def databaseConnection(self):
         self.db = Database(
-            host=os.getenv("DATABASE_HOST"),
-            port=os.getenv("DATABASE_PORT"),
-            user=os.getenv("DATABASE_USER"),
-            password=os.getenv("DATABASE_PASSWORD"),
-            databaseName=os.getenv("DATABASE_NAME"),
+            host=getenv("DATABASE_HOST"),
+            port=getenv("DATABASE_PORT"),
+            user=getenv("DATABASE_USER"),
+            password=getenv("DATABASE_PASSWORD"),
+            databaseName=getenv("DATABASE_NAME"),
         )
         self.db.connect()
 
@@ -106,18 +104,20 @@ class Consumer(object):
             if self.isServer:
                 host_type = "Server"
             print("[*] %s Consumer Running..." % host_type)
-            self.channel.basic_consume(queue=self.queue, on_message_callback=self.callback)
+            self.channel.basic_consume(
+                queue=self.queue, on_message_callback=self.callback
+            )
             self.channel.start_consuming()
         except KeyboardInterrupt:
             print("\nExit..")
 
 
 consumer = Consumer(
-    rabbitMQServer=os.getenv("RABBITMQ_SERVER_HOST"),
-    rabbitMQPort=os.getenv("RABBITMQ_SERVER_PORT"),
-    hostId=os.getenv("HOST_ID"),
-    hostName=os.getenv("HOST_NAME"),
-    queue=os.getenv("HOST_QUEUE"),
-    isServer=os.getenv("IS_SERVER"),
+    rabbitMQServer=getenv("RABBITMQ_SERVER_HOST"),
+    rabbitMQPort=getenv("RABBITMQ_SERVER_PORT"),
+    hostId=getenv("HOST_ID"),
+    hostName=getenv("HOST_NAME"),
+    queue=getenv("HOST_QUEUE"),
+    isServer=getenv("IS_SERVER"),
 )
 consumer.run()

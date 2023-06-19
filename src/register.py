@@ -3,11 +3,11 @@ from flask import request, jsonify
 from database import Database
 from datetime import datetime
 from dotenv import load_dotenv
-import os
+from os import getenv
 
 load_dotenv()
 
-if not os.getenv("IS_SERVER"):
+if not getenv("IS_SERVER"):
     print("[>] This host is not server")
     print("[>] Exit")
     exit()
@@ -15,11 +15,11 @@ if not os.getenv("IS_SERVER"):
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 db = Database(
-    host=os.getenv("DATABASE_HOST"),
-    port=os.getenv("DATABASE_PORT"),
-    user=os.getenv("DATABASE_USER"),
-    password=os.getenv("DATABASE_PASSWORD"),
-    databaseName=os.getenv("DATABASE_NAME"),
+    host=getenv("DATABASE_HOST"),
+    port=getenv("DATABASE_PORT"),
+    user=getenv("DATABASE_USER"),
+    password=getenv("DATABASE_PASSWORD"),
+    databaseName=getenv("DATABASE_NAME"),
 )
 db.connect()
 
@@ -33,7 +33,7 @@ def index():
 def registrasiClient():
     name = request.form.get("name")
     secretKey = request.form.get("secretKey")
-    if secretKey != os.getenv("SECRET_KEY"):
+    if secretKey != getenv("SECRET_KEY"):
         return jsonify(status=False, message="Secret key untuk registrasi salah"), 200
     if not name:
         return jsonify(status=False, message="Nama client diperlukan"), 200
