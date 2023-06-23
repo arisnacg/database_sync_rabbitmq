@@ -331,7 +331,7 @@ class Init(object):
         data += f"HOST_ID={self.clientId}\n"
         data += f"HOST_NAME={self.clientName}\n"
         data += f"HOST_QUEUE={self.rmqQueue}\n"
-        data += f'HOST_TOPIC="#.{self.rmqTopic}.#"\n'
+        data += f'HOST_TOPIC="{self.rmqTopic}"\n'
         file = open(".env", "w")
         file.write(data)
         file.close()
