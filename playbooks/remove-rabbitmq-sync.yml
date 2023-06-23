@@ -1,0 +1,5 @@
+- name: Remove Rabbitmq sync
+  hosts: ubuntu-servers
+  tasks:
+    - name: Remove Git project
+      command: rm -rf database_sync_rabbitmq

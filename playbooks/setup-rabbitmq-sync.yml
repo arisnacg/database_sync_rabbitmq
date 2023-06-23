@@ -1,20 +1,20 @@
 - name: Setup Rabbitmq sync
   hosts: ubuntu-servers
   tasks:
-    # - name: Git clone project
-    #   command: git clone https://github.com/arisnacg/database_sync_rabbitmq
+    - name: Git clone project
+      command: git clone https://github.com/arisnacg/database_sync_rabbitmq
 
-    # - name: Install mysql connectior
-    #   command: pip install mysql-connector-python
+    - name: Install mysql connectior
+      command: pip install mysql-connector-python
 
-    # - name: Install pika
-    #   command: pip install pika
+    - name: Install pika
+      command: pip install pika
 
-    # - name: Install requests
-    #   command: pip install requests
+    - name: Install requests
+      command: pip install requests
 
-    # - name: Install prettyTable
-    #   command: pip install prettyTable
+    - name: Install prettyTable
+      command: pip install prettyTable
 
     - name: Install python-dotenv
       command: pip install python-dotenv

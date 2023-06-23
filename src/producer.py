@@ -28,10 +28,6 @@ class Producer(object):
         # init method
         self.databaseConnection()
         self.decleareExchange()
-        if self.isServer:
-            self.f = open("time_sent_server.txt", "w+")
-        else:
-            self.f = open("time_sent_client.txt", "w+")
 
     def databaseConnection(self):
         self.db = Database(
@@ -62,7 +58,7 @@ class Producer(object):
 
     def getOutbox(self):
         res = self.db.select(
-            "SELECT `outbox_id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `uuid`, `processed_on`, `send_to`, `last_update` FROM outbox WHERE is_sent=0"
+            "SELECT `outbox_id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `processed_on`, `send_to`, `last_update` FROM outbox WHERE is_sent=0"
         )
         return res
 
@@ -74,7 +70,6 @@ class Producer(object):
             "table": outbox[4],
             "pk": outbox[5],
             "prev_pk": outbox[6],
-            "uuid": outbox[7],
             "last_update": outbox[10],
             "send_to": outbox[9],
             "id_sender": self.hostId,
@@ -97,7 +92,7 @@ class Producer(object):
             # select outbox
             for outbox in self.getOutbox():
                 self.publishOutbox(outbox)
-                self.f.write("%f\n" % time.time())
+                # self.f.write("%f\n" % time.time())
             # delay
             self.connection.sleep(self.delayTime)
             time.sleep(self.delayTime)

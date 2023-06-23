@@ -52,7 +52,7 @@ def registrasiClient():
     lastId = db.insert(
         "INSERT INTO clients(name, created_at) VALUES ('%s', '%s')" % (name, curTime)
     )
-    topic = "client%d_topic" % lastId
+    topic = "#.%d.#" % lastId
     queue = "client%d_queue" % lastId
     curTime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     db.update(

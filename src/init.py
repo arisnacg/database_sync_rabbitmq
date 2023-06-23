@@ -72,8 +72,6 @@ class Init(object):
 				`table` varchar(255) DEFAULT NULL,
 				`pk` bigint(20) DEFAULT NULL,
 				`prev_pk` bigint(20) DEFAULT NULL,
-				`uuid` varchar(36) DEFAULT NULL,
-                `last_update` double DEFAULT NULL,
 				`processed_on` datetime DEFAULT NULL,
 				`send_to` varchar(255) DEFAULT NULL,
 				`is_sent` tinyint(1) DEFAULT '0',
@@ -96,8 +94,6 @@ class Init(object):
 				`prev_pk` bigint(20) DEFAULT NULL,
 				`type` tinyint(4) DEFAULT NULL,
 				`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				`uuid` varchar(36) DEFAULT NULL,
-                `last_update` double DEFAULT NULL,
 				PRIMARY KEY (`changelog_id`)
 			)
 			"""
@@ -131,16 +127,16 @@ class Init(object):
                 ELSEIF NEW.type = 3 THEN
                     SET label = 'DEL';
                 END IF;
-                INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `uuid`, `last_update`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label, NEW.uuid, NEW.last_update);
+                INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label);
 			END;
 		"""
         self.db.execute(query)
         print("[+] Trigger Changelog ke Outbox berhasil dibuat")
         return True
 
-    def addUUIDColumn(self, tableName):
-        self.db.execute("ALTER TABLE %s ADD COLUMN `uuid` VARCHAR(36)" % tableName)
-        print("[+] %s : Kolom uuid berhasil ditambahkan" % tableName)
+    # def addUUIDColumn(self, tableName):
+    #     self.db.execute("ALTER TABLE %s ADD COLUMN `uuid` VARCHAR(36)" % tableName)
+    #     print("[+] %s : Kolom uuid berhasil ditambahkan" % tableName)
 
     def addLastUpdateColumn(self, tableName):
         self.db.execute("ALTER TABLE %s ADD COLUMN `last_update` DOUBLE" % tableName)
@@ -194,26 +190,23 @@ class Init(object):
         print("[*] Memproses trigger untuk setiap tabel..")
         tables = self.getTableName()
         for table in tables:
-            self.addUUIDColumn(table[0])
-            self.addLastUpdateColumn(table[0])
-            self.addPkCorrectionColumn(table[0])
+            # self.addUUIDColumn(table[0])
+            # self.addLastUpdateColumn(table[0])
+            # self.addPkCorrectionColumn(table[0])
             columns = self.getColumnTable(table[0])
             primaryKey = self.getPrimaryKeyName(table[0])
-            self.createTriggerBeforeInsert(table[0], primaryKey, columns)
+            # self.createTriggerBeforeInsert(table[0], primaryKey, columns)
             self.createTriggerAfterInsert(table[0], primaryKey, columns)
-            self.createTriggerBeforeUpdate(table[0], primaryKey, columns)
+            # self.createTriggerBeforeUpdate(table[0], primaryKey, columns)
             self.createTriggerAfterUpdate(table[0], primaryKey, columns)
             self.createTriggerDelete(table[0], primaryKey)
 
     def createTriggerAfterInsert(self, tableName, primaryKey, columns):
         triggerName = "after_insert_" + tableName
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
-        query = (
-            "CREATE TRIGGER `%s` AFTER INSERT ON `%s` FOR EACH ROW\
-			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`, `uuid`, `last_update`) VALUES"
-            % (triggerName, tableName)
-        )
-        queryValue = '(CONCAT("INSERT INTO %s (' % tableName
+        query = f"CREATE TRIGGER `{triggerName}` AFTER INSERT ON `{tableName}` FOR EACH ROW\
+			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
+        queryValue = f'(CONCAT("INSERT INTO {tableName} ({tableName}'
         columnsLength = len(columns)
         for i in range(columnsLength):
             queryValue += columns[i][0]
@@ -224,11 +217,7 @@ class Init(object):
             queryValue += "'\", NEW." + columns[i][0] + ",\"'"
             if i < columnsLength - 1:
                 queryValue += ", "
-        queryValue += ')"), "%s", NEW.%s, NEW.%s, 1, NEW.uuid, NEW.last_update);' % (
-            tableName,
-            primaryKey,
-            primaryKey,
-        )
+        queryValue += f')"), "{tableName}", NEW.{primaryKey}, NEW.{primaryKey}, 1);'
         self.db.execute(query + queryValue)
         print(
             '[+] %s : Trigger "%s" => berhasil ditambahkan' % (tableName, triggerName)
@@ -252,22 +241,18 @@ class Init(object):
     def createTriggerAfterUpdate(self, tableName, primaryKey, columns):
         triggerName = "after_update_" + tableName
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
-        query = (
-            "CREATE TRIGGER `%s` AFTER UPDATE ON `%s` FOR EACH ROW BEGIN IF NEW.pk_correction = 0 AND OLD.pk_correction = 0 THEN\
-			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`, `uuid`, `last_update`) VALUES"
-            % (triggerName, tableName)
-        )
-        queryValue = '(CONCAT("UPDATE %s SET ' % tableName
+        query = f"CREATE TRIGGER `{triggerName}` AFTER UPDATE ON `{tableName}` FOR EACH ROW BEGIN IF NEW.{primaryKey} > 0 AND OLD.{primaryKey} > 0 THEN\
+			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
+        queryValue = f'(CONCAT("UPDATE {tableName} SET '
         columnsLength = len(columns)
         for i in range(columnsLength):
             queryValue += columns[i][0] + " = " + "'\", NEW." + columns[i][0] + ",\"'"
             if i < columnsLength - 1:
                 queryValue += ", "
-        queryValue += " WHERE %s = " % (primaryKey)
+        queryValue += f" WHERE {primaryKey} = "
         queryValue += "'\", OLD." + primaryKey + ",\"'"
         queryValue += (
-            '"), "%s", NEW.%s, OLD.%s, 2, NEW.uuid, NEW.last_update); END IF; END;'
-            % (tableName, primaryKey, primaryKey)
+            f'"), "{tableName}", NEW.{primaryKey}, OLD.{primaryKey}, 2); END IF; END;'
         )
         self.db.execute(query + queryValue)
         print(
@@ -277,11 +262,8 @@ class Init(object):
     def createTriggerBeforeUpdate(self, tableName, primaryKey, columns):
         triggerName = "before_update_" + tableName
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
-        query = (
-            "CREATE TRIGGER `%s` BEFORE UPDATE ON `%s` FOR EACH ROW BEGIN IF NEW.pk_correction = 0 AND OLD.pk_correction = 0 AND NEW.last_update = OLD.last_update THEN\
+        query = f"CREATE TRIGGER `{triggerName}` BEFORE UPDATE ON `{tableName}` FOR EACH ROW BEGIN IF OLD.{primaryKey} > 0 OR NEW.{primaryKey} > 0 THEN\
              SET NEW.last_update = UNIX_TIMESTAMP(NOW(3)); END IF; END;"
-            % (triggerName, tableName)
-        )
         self.db.execute(query)
         print(
             '[+] %s : Trigger "%s" => berhasil ditambahkan' % (tableName, triggerName)
@@ -289,23 +271,11 @@ class Init(object):
 
     def createTriggerDelete(self, tableName, primaryKey):
         triggerName = "after_delete_" + tableName
-        self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
-        query = (
-            'CREATE TRIGGER `%s` BEFORE DELETE ON `%s` \
-			FOR EACH ROW INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`, `uuid`, `last_update`)\
-			VALUES (CONCAT("DELETE FROM %s WHERE %s=", OLD.%s), "%s", OLD.%s, OLD.%s, 3, OLD.uuid, OLD.last_update);\
+        self.db.execute(f"DROP TRIGGER IF EXISTS {triggerName}")
+        query = f'CREATE TRIGGER `{triggerName}` BEFORE DELETE ON `{tableName}` \
+			FOR EACH ROW INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`)\
+			VALUES (CONCAT("DELETE FROM {tableName} WHERE {primaryKey}=", OLD.{primaryKey}), "{tableName}", OLD.{primaryKey}, OLD.{primaryKey}, 3);\
 			'
-            % (
-                triggerName,
-                tableName,
-                tableName,
-                primaryKey,
-                primaryKey,
-                tableName,
-                primaryKey,
-                primaryKey,
-            )
-        )
         self.db.execute(query)
         print(
             '[+] %s : Trigger "%s" => berhasil ditambahkan' % (tableName, triggerName)
@@ -320,6 +290,53 @@ class Init(object):
                 triggerName = "%s_%s" % (caption, table[0])
                 self.dropTrigger(triggerName)
                 print('[+] %s : Trigger "%s" => dihapus' % (table[0], triggerName))
+
+    def writeServerConfigFile(self):
+        data = "# Database\n"
+        data += f"DATABASE_HOST={self.dbHost}\n"
+        data += f"DATABASE_PORT={self.dbPort}\n"
+        data += f"DATABASE_USER={self.dbUser}\n"
+        data += f"DATABASE_PASSWORD={self.dbPass}\n"
+        data += f"DATABASE_NAME={self.dbName}\n"
+        data += "#RabbitMQ\n"
+        data += f"RABBITMQ_SERVER_HOST={self.rmqHost}\n"
+        data += f'RABBITMQ_SERVER_PORT=""\n'
+        data += "#Database Sync\n"
+        data += "IS_SERVER=1\n"
+        data += f"HOST_ID=0\n"
+        data += f"HOST_NAME={self.serverName}\n"
+        data += f'HOST_QUEUE="server_queue"\n'
+        data += f'SECRET_KEY="{self.secretKey}"\n'
+        file = open(".env", "w")
+        file.write(data)
+        file.close()
+        print("[!] Data berhasil disimpan ke file konfigurasi")
+        print("[!] Server Secret Key : %s" % self.secretKey)
+
+    def writeClientConfigFile(self):
+        data = "# Database\n"
+        data += f"DATABASE_HOST={self.dbHost}\n"
+        data += f"DATABASE_PORT={self.dbPort}\n"
+        data += f"DATABASE_USER={self.dbUser}\n"
+        data += f"DATABASE_PASSWORD={self.dbPass}\n"
+        data += f"DATABASE_NAME={self.dbName}\n"
+        data += "#RabbitMQ\n"
+        data += f"RABBITMQ_SERVER_HOST={self.rmqHost}\n"
+        data += f'RABBITMQ_SERVER_PORT=""\n'
+        data += "#Database Sync\n"
+        data += f"DB_SYNC_SERVER={self.rmqHost}\n"
+        data += f"DB_SYNC_PORT=\n"
+        data += "#Client Configuration\n"
+        data += "IS_SERVER=0\n"
+        data += f"HOST_ID={self.clientId}\n"
+        data += f"HOST_NAME={self.clientName}\n"
+        data += f"HOST_QUEUE={self.rmqQueue}\n"
+        data += f'HOST_TOPIC="#.{self.rmqTopic}.#"\n'
+        file = open(".env", "w")
+        file.write(data)
+        file.close()
+        print("[!] Data berhasil disimpan ke file konfigurasi")
+        print("[!] Server Secret Key : %s" % self.secretKey)
 
     def inputServer(self):
         self.serverName = input("[+] Nama Server\t\t: ")
@@ -339,39 +356,7 @@ class Init(object):
 
         self.rmqHost = input("[+] RabbitMQ Host\t: ")
         self.secretKey = uuid.uuid4()
-        file = open(".env", "w")
-        file.write(
-            """# Database
-DATABASE_HOST="%s"
-DATABASE_PORT=%d
-DATABASE_USER="%s"
-DATABASE_PASSWORD="%s"
-DATABASE_NAME="%s"
-# RabbitMQ Server
-RABBITMQ_SERVER_HOST="%s"
-RABBITMQ_SERVER_PORT=""
-# Database Sync Server
-HOST_ID=0
-HOST_NAME="%s"
-HOST_QUEUE="server_queue"
-SECRET_KEY="%s" 
-#Tipe Host
-IS_SERVER=1
-            """
-            % (
-                self.dbHost,
-                self.dbPort,
-                self.dbUser,
-                self.dbPass,
-                self.dbName,
-                self.rmqHost,
-                self.serverName,
-                self.secretKey,
-            )
-        )
-        file.close()
-        print("[!] Data berhasil disimpan ke file konfigurasi")
-        print("[!] Server Secret Key : %s" % self.secretKey)
+        self.writeServerConfigFile()
         self.createTableClients()
         self.createTableChangelog()
         self.createTableInbox()
@@ -437,45 +422,7 @@ IS_SERVER=1
                     print("[x] Registrasi gagal : %s" % res["message"])
             except:
                 print("[x] Terjadi gangguan. Coba beberapa saat lagi")
-
-        file = open(".env", "w")
-        file.write(
-            """# Database
-DATABASE_HOST="%s"
-DATABASE_PORT=%d
-DATABASE_USER="%s"
-DATABASE_PASSWORD="%s"
-DATABASE_NAME="%s"
-# RabbitMQ Server
-RABBITMQ_SERVER_HOST="%s"
-RABBITMQ_SERVER_PORT=""
-#Database Sync Server
-DB_SYNC_SERVER="%s"
-DB_SYNC_PORT=""
-#Database Sync Client
-HOST_ID="%d"
-HOST_NAME="%s"
-HOST_TOPIC="%s"
-HOST_QUEUE="%s"
-#Tipe Host
-IS_SERVER=0
-            """
-            % (
-                self.dbHost,
-                self.dbPort,
-                self.dbUser,
-                self.dbPass,
-                self.dbName,
-                self.rmqHost,
-                self.rmqHost,
-                self.clientId,
-                self.clientName,
-                self.rmqTopic,
-                self.rmqQueue,
-            )
-        )
-        file.close()
-        print("[!] Data berhasil disimpan ke file konfigurasi")
+        self.writeClientConfigFile()
 
     def run(self):
         print("=== INISIASI SERVICE SINKRONISASI DATABASE ===")
