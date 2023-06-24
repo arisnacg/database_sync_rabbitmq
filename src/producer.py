@@ -103,7 +103,7 @@ class Producer(object):
         )
         if self.db.update("UPDATE outbox SET is_sent=1 WHERE outbox_id=%d" % outbox[0]):
             print(
-                f"[ID: {outbox[0]}] {outbox[4]}:{outbox[5]} {outbox[3]} -> ({routing_key}) SUCCESS"
+                f"[ID:{outbox[0]}] {outbox[4]}:{outbox[5]} {outbox[3]} -> ({routing_key}) SUCCESS"
             )
 
     def publish(self):
