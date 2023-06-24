@@ -19,15 +19,20 @@ class Producer(object):
         self.isServer = isServer
         if isServer:
             self.exchange = "server_to_client"
+            self.exchangeType = "topic"
         else:
             self.exchange = "client_to_server"
-        self.exchangeType = "fanout"
-        self.topic = ""
+            self.exchangeType = "fanout"
         self.hostId = hostId
         self.hostName = hostName
+
         # init method
         self.databaseConnection()
         self.decleareExchange()
+        if isServer:
+            self.topic = self.getServerTopic()
+        else:
+            self.topic = ""
 
     def databaseConnection(self):
         self.db = Database(
@@ -56,9 +61,22 @@ class Producer(object):
         )
         self.rabbitMQClose()
 
+    def getServerTopic(self):
+        arrClientID = self.getClientIDs()
+        clientStr = ".".join(map(str, arrClientID))
+        topic = f".{clientStr}."
+        return topic
+
+    def getClientIDs(self):
+        res = self.db.select("SELECT `client_id` FROM clients")
+        arrClientID = []
+        for client in res:
+            arrClientID.append(client[0])
+        return arrClientID
+
     def getOutbox(self):
         res = self.db.select(
-            "SELECT `outbox_id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `processed_on`, `send_to`, `last_update` FROM outbox WHERE is_sent=0"
+            "SELECT `outbox_id`, `query`, `type`, `label`, `table`, `pk`, `prev_pk`, `processed_on`, `block_list` FROM outbox WHERE is_sent=0"
         )
         return res
 
@@ -70,21 +88,23 @@ class Producer(object):
             "table": outbox[4],
             "pk": outbox[5],
             "prev_pk": outbox[6],
-            "last_update": outbox[10],
-            "send_to": outbox[9],
+            "processed_on": outbox[7],
             "id_sender": self.hostId,
             "sender_name": self.hostName,
-            "processed_on": outbox[8],
         }
+        routing_key = self.topic
+
+        block_list = outbox[8]
+        if block_list is not None and block_list != "":
+            routing_key = routing_key.replace(block_list, "")
+
         self.channel.basic_publish(
-            exchange=self.exchange, routing_key=self.topic, body=json.dumps(message)
+            exchange=self.exchange, routing_key=routing_key, body=json.dumps(message)
         )
         if self.db.update("UPDATE outbox SET is_sent=1 WHERE outbox_id=%d" % outbox[0]):
-            print("[OUTBOX ID : %d] SUCCESS : %s" % (outbox[0], outbox[1]))
-
-    def getLabel(self, type):
-        if type == 1:
-            return "INSERT"
+            print(
+                f"[ID: {outbox[0]}] {outbox[4]}:{outbox[5]} {outbox[3]} -> ({routing_key}) SUCCESS"
+            )
 
     def publish(self):
         self.rabbitMQConnect()
@@ -92,7 +112,6 @@ class Producer(object):
             # select outbox
             for outbox in self.getOutbox():
                 self.publishOutbox(outbox)
-                # self.f.write("%f\n" % time.time())
             # delay
             self.connection.sleep(self.delayTime)
             time.sleep(self.delayTime)

@@ -73,7 +73,7 @@ class Init(object):
 				`pk` bigint(20) DEFAULT NULL,
 				`prev_pk` bigint(20) DEFAULT NULL,
 				`processed_on` datetime DEFAULT NULL,
-				`send_to` varchar(255) DEFAULT NULL,
+				`block_list` varchar(255) DEFAULT NULL,
 				`is_sent` tinyint(1) DEFAULT '0',
 				`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
