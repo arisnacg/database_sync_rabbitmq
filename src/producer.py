@@ -102,8 +102,11 @@ class Producer(object):
             exchange=self.exchange, routing_key=routing_key, body=json.dumps(message)
         )
         if self.db.update("UPDATE outbox SET is_sent=1 WHERE outbox_id=%d" % outbox[0]):
+            topic_log = "SERVER"
+            if self.isServer:
+                topic_log = f"({routing_key})"
             print(
-                f"[ID:{outbox[0]}] {outbox[4]}:{outbox[5]} {outbox[3]} -> ({routing_key}) SUCCESS"
+                f"[ID:{outbox[0]}] {outbox[4]}:{outbox[5]} {outbox[3]} -> {topic_log} SUCCESS"
             )
 
     def publish(self):
