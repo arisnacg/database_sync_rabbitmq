@@ -71,20 +71,26 @@ class Consumer(object):
         query = "INSERT INTO inbox(`query`, `table`, `label`, `pk`, `prev_pk`, `type`, `id_sender`) "
         query += f"VALUES (\"{body['query']}\", '{body['table']}', '{body['label']}', '{body['pk']}', '{body['prev_pk']}', '{body['type']}', '{body['id_sender']}')"
         lastid = self.db.insert(query)
-        print(
-            f"[ID:{lastid}] {body['table']}:{body['pk']} {body['label']} <- SERVER ({self.topic})"
-        )
+        if self.isServer:
+            log = f"[ID:{lastid}] {body['table']}:{body['pk']} {body['label']} <- CLIENT ID:{body['id_sender']}"
+        else:
+            log = f"[ID:{lastid}] {body['table']}:{body['pk']} {body['label']} <- SERVER ({self.topic})"
+        print(log)
         return lastid
 
     def run(self):
         try:
             host_type = "Client"
+            topic_log = ""
             if self.isServer:
                 host_type = "Server"
-            print("[*] %s Consumer Listening... (topic: %s)" % (host_type, self.topic))
+            else:
+                topic_log += f" (topic: {self.topic})"
+            log = f"[*] {host_type} Consumer Listening...{topic_log}"
             self.channel.basic_consume(
                 queue=self.queue, on_message_callback=self.callback
             )
+            print(log)
             self.channel.start_consuming()
         except KeyboardInterrupt:
             print("\nExit..")
