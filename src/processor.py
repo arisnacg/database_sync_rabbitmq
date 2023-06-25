@@ -1,7 +1,6 @@
 #! /bin/python3
 from os import getenv
 import time
-from typing import NotRequired
 from dotenv import load_dotenv
 import sys
 import re
@@ -36,7 +35,7 @@ class Processor(object):
     ###########################################################################
     def getDefaultBlocklist(self):
         if not self.isServer:
-            return ''
+            return ""
         arrClientID = self.getClientIDs()
         clientStr = ".".join([str(clientID) for clientID in arrClientID])
         return f".{clientStr}."
@@ -91,6 +90,9 @@ class Processor(object):
                 res = self.queryInsertServer(event)
             else:
                 res = self.queryInsertClient(event)
+        if event["type"] == 4:
+            if not self.isServer:
+                res = self.updatePrimaryKeyClient(event)
         # jika bertipe update
         # elif inbox[2] == 2:
         #     # jika update memiliki label PRI
@@ -108,10 +110,34 @@ class Processor(object):
         #         res = self.queryDeleteClient(inbox)
         return res
 
+    # func update primary key
+    ###########################################################################
+    def updatePrimaryKeyClient(self, event):
+        pkName = self.getPrimaryKeyName(event["table"])
+
+        optionalLog = ""
+        queryUpdate = ""
+        success = False
+
+        # mengecek duplicate primary key
+        queryCount = f"SELECT COUNT({pkName}) FROM {event['table']} WHERE {pkName} = {event['pk']}"
+        isPKExist = self.db.count(queryCount)
+        if not isPKExist:
+            queryUpdate = f"UPDATE {event['table']} SET {pkName} = {event['pk']} WHERE {pkName} = -{event['prev_pk']}"
+            self.db.update(queryUpdate)
+            optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
+            try:
+                self.db.update(queryUpdate)
+                self.updateInboxProccess(event["inbox_id"])
+                success = True
+            except:
+                success = False
+            self.printInfo(event, success, optionalLog)
+            return success
+
     # func query insert for client
     ###########################################################################
     def queryInsertClient(self, event):
-        # cek apakah primary key sudah terpakai
         pkName = self.getPrimaryKeyName(event["table"])
 
         queryInsert = event["query"]
@@ -155,7 +181,6 @@ class Processor(object):
         query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
 
         return query
-
 
     # func query insert for server
     ###########################################################################
