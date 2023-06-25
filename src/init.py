@@ -206,7 +206,7 @@ class Init(object):
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
         query = f"CREATE TRIGGER `{triggerName}` AFTER INSERT ON `{tableName}` FOR EACH ROW\
 			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
-        queryValue = f'(CONCAT("INSERT INTO {tableName} ({tableName}'
+        queryValue = f'(CONCAT("INSERT INTO {tableName} ('
         columnsLength = len(columns)
         for i in range(columnsLength):
             queryValue += columns[i][0]
