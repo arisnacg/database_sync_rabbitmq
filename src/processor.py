@@ -1,6 +1,7 @@
 #! /bin/python3
 from os import getenv
 import time
+from typing import NotRequired
 from dotenv import load_dotenv
 import sys
 import re
@@ -12,16 +13,12 @@ load_dotenv()
 class Processor(object):
     def __init__(self):
         self.isServer = int(getenv("IS_SERVER", 0))
-        if self.isServer:
-            self.f = open("time_processed_server.txt", "w+")
-        else:
-            self.f = open("time_processed_client.txt", "w+")
         self.loopCount = 0
         self.inboxCount = 0
         self.delayTime = 1
         self.databaseConnection()
         self.pkCorrectionStatus = {}
-        self.label = {"updatePrimaryKey": "PRI"}
+        self.defaultBlocklist = self.getDefaultBlocklist()
 
     # koneksi database
     ###########################################################################
@@ -34,6 +31,24 @@ class Processor(object):
             databaseName=getenv("DATABASE_NAME"),
         )
         self.db.connect()
+
+    # mendapatkan ID client
+    ###########################################################################
+    def getDefaultBlocklist(self):
+        if not self.isServer:
+            return ''
+        arrClientID = self.getClientIDs()
+        clientStr = ".".join([str(clientID) for clientID in arrClientID])
+        return f".{clientStr}."
+
+    # mendapatkan ID client
+    ###########################################################################
+    def getClientIDs(self):
+        res = self.db.select("SELECT `client_id` FROM clients")
+        arrClientID = []
+        for client in res:
+            arrClientID.append(client[0])
+        return arrClientID
 
     # mengambil data dari inbox
     ###########################################################################
@@ -141,44 +156,32 @@ class Processor(object):
 
         return query
 
+
     # func query insert for server
     ###########################################################################
-    def queryInsertServer(self, inbox):
-        self.printInfo(inbox)
-        print("[>] QUERY: INSERT\n%s" % inbox[1])
-        lastId = self.db.insert(inbox[1])
-        if lastId:
-            print("[+] Successfully exectued")
-            pkName = self.getPrimaryKeyName(inbox[3])
-            queryUpdate = "UPDATE %s SET %s=%d WHERE %s=%d" % (
-                inbox[3],
-                pkName,
-                lastId,
-                pkName,
-                inbox[4],
-            )
-            queryOutbox = (
-                "INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `uuid`, `send_to`, `label`) \
-                VALUES (\"%s\", '%s', '%d', '%s', '%s', '%s', '%s', '%s')"
-                % (
-                    queryUpdate,
-                    inbox[3],
-                    lastId,
-                    inbox[4],
-                    2,
-                    inbox[6],
-                    inbox[7],
-                    self.label["updatePrimaryKey"],
-                )
-            )
+    def queryInsertServer(self, event):
+        # cek apakah primary key sudah terpakai
+        queryInsert = event["query"]
+        optionalLog = ""
+        lastId = None
+        success = False
+
+        try:
+            lastId = self.db.insert(queryInsert)
+            success = True
+        except:
+            success = False
+
+        if lastId != event["pk"]:
+            self.updateInboxProccess(event["inbox_id"])
+            queryUpdate = ""
+            blocklist = self.defaultBlocklist.replace(f".{event['id_sender']}", "")
+            queryOutbox = f"INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) \
+                VALUES (\"{queryUpdate}\", '{event['table']}', '{lastId}', '{event['pk']}', '4', 'PRI', '{blocklist}')"
             self.db.insert(queryOutbox)
-            self.f.write("%f\n" % time.time())
-            # self.updateInboxProccessedOn(inbox[0])
-            self.updateInboxProccess(inbox[0])
-            return True
-        else:
-            print("[>] Failed to exectued")
-            return False
+            optionalLog = f"(pk: {event['pk']} -> {lastId})"
+        self.printInfo(event, success, optionalLog)
+        return success
 
     # fucn query update for client
     ###########################################################################
