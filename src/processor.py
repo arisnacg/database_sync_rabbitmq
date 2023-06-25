@@ -3,6 +3,7 @@ from os import getenv
 import time
 from dotenv import load_dotenv
 import sys
+import re
 from database import Database
 
 load_dotenv()
@@ -55,12 +56,14 @@ class Processor(object):
 
     # menampilkan info
     ###########################################################################
-    def printInfo(self, event, success=True):
-        log = f"[Inbox: {event['inbox_id']}] {event['label']} -> {event['table']}:{event['pk']} "
+    def printInfo(self, event, success=True, optionalLog=""):
+        log = f"[ID:{event['inbox_id']}] {event['label']} -> {event['table']}:{event['pk']}"
+        if optionalLog != "":
+            log += f" .. {optionalLog}"
         if success:
-            log += " .. Success"
+            log += " .. SUCCESS"
         else:
-            log += " .. Failed"
+            log += " .. FAILED"
         print(log)
 
     # mengexcute query dari inbox
@@ -94,33 +97,49 @@ class Processor(object):
     ###########################################################################
     def queryInsertClient(self, event):
         # cek apakah primary key sudah terpakai
-        pkName = self.getPrimaryKeyName(event[3])
-        # queryCek = (
-        #     f"SELECT COUNT({pkName}) FROM {event['table']} WHERE {pkName}={event['pk']}"
-        # )
-        # print("[*] Checking for PK : %s" % queryCek)
-        # self.db.count(queryCek)
+        pkName = self.getPrimaryKeyName(event["table"])
+
+        queryInsert = event["query"]
+        optionalLog = ""
+        lastId = None
         success = False
-        while not success:
-            try:
-                lastId = self.db.insert(event[1])
-                self.f.write("%f\n" % time.time())
-                success = True
-            except:
-                success = False
-            # if lastId:
-            #     print("[>] Successfully executed")
-            #     # self.updateInboxProccessedOn(inbox[0])
-            #     self.updateInboxProccess(event[0])
-            #     if lastId != event[4]:
-            #         print("[>] Primary key from Inbox: %d" % event[4])
-            #         print("[>] Primary key from DB   : %d" % lastId)
-            #         # membuat UPDATE PRIMARY KEY
-            #         self.createUpdatePrimaryKey(event, lastId)
-            #         self.updatePkCorrectionStatus(event[3], 1)
-            # else:
-        self.printInfo(event, success)
+
+        # mengecek duplicate primary key
+        queryCount = f"SELECT COUNT({pkName}) FROM {event['table']} WHERE {pkName} = {event['pk']}"
+        isPKExist = self.db.count(queryCount)
+        if isPKExist:
+            queryInsert = self.modifyInsertQueryForClient(
+                queryInsert, event["table"], pkName, event["pk"]
+            )
+            queryUpdate = f"UPDATE {event['table']} SET {pkName} = -{event['pk']} WHERE {pkName} = {event['pk']}"
+            self.db.update(queryUpdate)
+            optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
+
+        try:
+            lastId = self.db.insert(queryInsert)
+            success = True
+        except:
+            success = False
+
+        if lastId:
+            self.updateInboxProccess(event["inbox_id"])
+        self.printInfo(event, success, optionalLog)
         return success
+
+    def modifyInsertQueryForClient(self, query, tableName, pkName, pk):
+        # menambah kolom primary key
+        added_string = f"{pkName}, "
+        word_to_match = f"{tableName} ("
+        regex_pattern = re.escape(word_to_match)
+        query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
+
+        # menambah value primary key
+        added_string = f"'{pk}', "
+        word_to_match = "VALUES ("
+        regex_pattern = re.escape(word_to_match)
+        query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
+
+        return query
 
     # func query insert for server
     ###########################################################################
@@ -422,11 +441,11 @@ class Processor(object):
         while True:
             self.loopCount += 1
             inboxes = self.getInbox()
-            self.inboxCount = len(inboxes)
-            print("[*] Inbox Count : %d" % len(inboxes))
+            # self.inboxCount = len(inboxes)
+            # print("[*] Inbox Count : %d" % len(inboxes))
             for inbox in inboxes:
                 event = {
-                    "id": inbox[0],
+                    "inbox_id": inbox[0],
                     "query": inbox[1],
                     "type": inbox[2],
                     "table": inbox[3],
@@ -443,11 +462,14 @@ class Processor(object):
     # func untuk menjalankan program
     ###########################################################################
     def run(self):
-        type = "Client"
-        if self.isServer:
-            type = "Server"
-        print("[*] %s Processor Running..." % type)
-        self.process()
+        try:
+            type = "Client"
+            if self.isServer:
+                type = "Server"
+            print("[*] %s Processor Running..." % type)
+            self.process()
+        except KeyboardInterrupt:
+            print("\nExit..")
 
 
 processor = Processor()
