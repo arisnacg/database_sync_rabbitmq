@@ -38,7 +38,7 @@ class Processor(object):
             return ""
         arrClientID = self.getClientIDs()
         clientStr = ".".join([str(clientID) for clientID in arrClientID])
-        return f".{clientStr}."
+        return f".{clientStr}"
 
     # mendapatkan ID client
     ###########################################################################
