@@ -38,7 +38,7 @@ class Processor(object):
     ###########################################################################
     def getInbox(self):
         res = self.db.select(
-            "SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
+            "SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `id_sender`, `processed_on`, `label`, `is_process`\
              FROM inbox WHERE is_process=0"
         )
         return res
@@ -47,7 +47,7 @@ class Processor(object):
     ###########################################################################
     def getInboxById(self, id):
         res = self.db.select(
-            "SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
+            "SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `id_sender`, `processed_on`, `label`, `is_process`\
              FROM inbox WHERE inbox_id=%d"
             % id
         )
@@ -55,76 +55,72 @@ class Processor(object):
 
     # menampilkan info
     ###########################################################################
-    def printInfo(self, inbox):
-        pkCorrection = "no"
-        if self.getPkCorrectionStatus(inbox[3]):
-            pkCorrection = "yes"
-        print("\n==============================================================")
-        print(
-            "[ID: %d] [Inbox: %d] [TB: %s] [PK correction: %s]"
-            % (inbox[0], self.inboxCount, inbox[3], pkCorrection)
-        )
-        print("--------------------------------------------------------------")
+    def printInfo(self, event, success=True):
+        log = f"[Inbox: {event['inbox_id']}] {event['label']} -> {event['table']}:{event['pk']} "
+        if success:
+            log += " .. Success"
+        else:
+            log += " .. Failed"
+        print(log)
 
     # mengexcute query dari inbox
     ###########################################################################
-    def executeQueryInbox(self, inbox):
+    def executeQueryInbox(self, event):
         res = False
         # jika bertipe insert
-        if inbox[2] == 1:
+        if event["type"] == 1:
             if self.isServer:
-                res = self.queryInsertServer(inbox)
+                res = self.queryInsertServer(event)
             else:
-                res = self.queryInsertClient(inbox)
+                res = self.queryInsertClient(event)
         # jika bertipe update
-        elif inbox[2] == 2:
-            # jika update memiliki label PRI
-            if inbox[9] == self.label["updatePrimaryKey"]:
-                res = self.queryPrimaryKey(inbox)
-            elif self.isServer:
-                res = self.queryUpdateServer(inbox)
-            else:
-                res = self.queryUpdateClient(inbox)
-        # jika bertipe delete
-        elif inbox[2] == 3:
-            if self.isServer:
-                res = self.queryDeleteServer(inbox)
-            else:
-                res = self.queryDeleteClient(inbox)
+        # elif inbox[2] == 2:
+        #     # jika update memiliki label PRI
+        #     # if inbox[9] == self.label["updatePrimaryKey"]:
+        #     #     res = self.queryPrimaryKey(inbox)
+        #     if self.isServer:
+        #         res = self.queryUpdateServer(inbox)
+        #     else:
+        #         res = self.queryUpdateClient(inbox)
+        # # jika bertipe delete
+        # elif inbox[2] == 3:
+        #     if self.isServer:
+        #         res = self.queryDeleteServer(inbox)
+        #     else:
+        #         res = self.queryDeleteClient(inbox)
         return res
 
     # func query insert for client
     ###########################################################################
-    def queryInsertClient(self, inbox):
-        self.printInfo(inbox)
-        print("[>] QUERY: INSERT\n%s" % inbox[1])
+    def queryInsertClient(self, event):
         # cek apakah primary key sudah terpakai
-        pkName = self.getPrimaryKeyName(inbox[3])
-        queryCek = "SELECT COUNT(*) FROM %s WHERE %s=%d" % (inbox[3], pkName, inbox[4])
+        pkName = self.getPrimaryKeyName(event[3])
+        # queryCek = (
+        #     f"SELECT COUNT({pkName}) FROM {event['table']} WHERE {pkName}={event['pk']}"
+        # )
         # print("[*] Checking for PK : %s" % queryCek)
         # self.db.count(queryCek)
         success = False
         while not success:
             try:
-                lastId = self.db.insert(inbox[1])
+                lastId = self.db.insert(event[1])
                 self.f.write("%f\n" % time.time())
                 success = True
             except:
                 success = False
-        if lastId:
-            print("[>] Successfully executed")
-            # self.updateInboxProccessedOn(inbox[0])
-            self.updateInboxProccess(inbox[0])
-            if lastId != inbox[4]:
-                print("[>] Primary key from Inbox: %d" % inbox[4])
-                print("[>] Primary key from DB   : %d" % lastId)
-                sys.exit()
-                # membuat UPDATE PRIMARY KEY
-                self.createUpdatePrimaryKey(inbox, lastId)
-                self.updatePkCorrectionStatus(inbox[3], 1)
-        else:
-            print("[>] Failed to executed")
-        return False
+            # if lastId:
+            #     print("[>] Successfully executed")
+            #     # self.updateInboxProccessedOn(inbox[0])
+            #     self.updateInboxProccess(event[0])
+            #     if lastId != event[4]:
+            #         print("[>] Primary key from Inbox: %d" % event[4])
+            #         print("[>] Primary key from DB   : %d" % lastId)
+            #         # membuat UPDATE PRIMARY KEY
+            #         self.createUpdatePrimaryKey(event, lastId)
+            #         self.updatePkCorrectionStatus(event[3], 1)
+            # else:
+        self.printInfo(event, success)
+        return success
 
     # func query insert for server
     ###########################################################################
@@ -427,10 +423,21 @@ class Processor(object):
             self.loopCount += 1
             inboxes = self.getInbox()
             self.inboxCount = len(inboxes)
-            # print("[*] INBOX COUNT : %d" % len(inboxes))
+            print("[*] Inbox Count : %d" % len(inboxes))
             for inbox in inboxes:
-                # print("[*] INBOX ID : %d" % inbox[0])
-                self.executeQueryInbox(inbox)
+                event = {
+                    "id": inbox[0],
+                    "query": inbox[1],
+                    "type": inbox[2],
+                    "table": inbox[3],
+                    "pk": inbox[4],
+                    "prev_pk": inbox[5],
+                    "id_sender": inbox[6],
+                    "processed_on": inbox[7],
+                    "label": inbox[8],
+                    "is_process": inbox[9],
+                }
+                self.executeQueryInbox(event)
             time.sleep(self.delayTime)
 
     # func untuk menjalankan program
