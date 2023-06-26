@@ -200,8 +200,12 @@ class Processor(object):
         if lastId != event["pk"]:
             queryUpdate = ""
             blocklist = self.defaultBlocklist.replace(f".{event['id_sender']}", "")
+            if blocklist == "":
+                blocklist = "NULL"
+            else:
+                blocklist = f"'{blocklist}'"
             queryOutbox = f"INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) \
-                VALUES (\"{queryUpdate}\", '{event['table']}', '{lastId}', '{event['pk']}', '4', 'PRI', '{blocklist}')"
+                VALUES (\"{queryUpdate}\", '{event['table']}', '{lastId}', '{event['pk']}', '4', 'PRI', {blocklist})"
             self.db.insert(queryOutbox)
             optionalLog = f"(pk: {event['pk']} -> {lastId})"
         self.printInfo(event, success, optionalLog)
