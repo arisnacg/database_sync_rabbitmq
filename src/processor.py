@@ -157,13 +157,12 @@ class Processor(object):
             optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
 
         try:
-            lastId = self.db.insert(queryInsert)
+            self.updateInboxProccess(event["inbox_id"])
+            self.db.insert(queryInsert)
             success = True
         except:
             success = False
 
-        if lastId:
-            self.updateInboxProccess(event["inbox_id"])
         self.printInfo(event, success, optionalLog)
         return success
 
@@ -192,13 +191,13 @@ class Processor(object):
         success = False
 
         try:
+            self.updateInboxProccess(event["inbox_id"])
             lastId = self.db.insert(queryInsert)
             success = True
         except:
             success = False
 
         if lastId != event["pk"]:
-            self.updateInboxProccess(event["inbox_id"])
             queryUpdate = ""
             blocklist = self.defaultBlocklist.replace(f".{event['id_sender']}", "")
             queryOutbox = f"INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) \
