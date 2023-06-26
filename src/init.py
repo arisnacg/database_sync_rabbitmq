@@ -124,6 +124,8 @@ class Init(object):
         FOR EACH ROW BEGIN
       DECLARE label VARCHAR(5) DEFAULT 'INS';
       DECLARE blocklist VARCHAR(100) DEFAULT NULL;
+      DECLARE inbox_count INT DEFAULT 0;
+
       IF NEW.type = 2 THEN
           SET label = 'UPD';
       ELSEIF NEW.type = 3 THEN
@@ -134,8 +136,13 @@ class Init(object):
         IF blocklist IS NOT NULL THEN
           SET blocklist = CONCAT('.', blocklist);
         END IF;
-      END IF;
       INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label, blocklist);
+      ELSE
+        SELECT COUNT(inbox_id) INTO inbox_count FROM inbox WHERE `table` = NEW.table AND `type` = NEW.type AND `query` = NEW.query AND id_sender = 0;
+		IF inbox_count = 0 THEN
+			INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label, blocklist);
+		END IF;
+      END IF;
     END;"""
         self.db.execute(query)
         print("[+] Trigger Changelog ke Outbox berhasil dibuat")
