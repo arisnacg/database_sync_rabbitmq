@@ -346,7 +346,6 @@ class Init(object):
         print("[!] Server Secret Key : %s" % self.secretKey)
 
     def inputServer(self):
-        self.serverName = input("[+] Nama Server\t\t: ")
         while True:
             self.dbHost = input("[+] Host Database\t: ")
             self.dbPort = int(input("[+] Port Database\t: "))
@@ -361,6 +360,7 @@ class Init(object):
             except:
                 print("[x] Koneksi database error. Silahkan input ulang")
 
+        self.serverName = input("[+] Nama Server\t\t: ")
         self.rmqHost = input("[+] RabbitMQ Host\t: ")
         self.secretKey = uuid.uuid4()
         self.writeServerConfigFile()
