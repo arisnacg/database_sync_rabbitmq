@@ -39,64 +39,64 @@ class Init(object):
     def createTableInbox(self):
         self.db.execute(
             """
-			CREATE TABLE `inbox` (
-				`inbox_id` bigint(20) NOT NULL AUTO_INCREMENT,
-				`query` text,
-				`type` smallint(6) DEFAULT NULL COMMENT '1 = insert, 2 = update, 3 = delete',
-				`label` varchar(255) DEFAULT NULL,
-				`table` varchar(255) DEFAULT NULL,
-				`pk` bigint(20) DEFAULT NULL,
-				`prev_pk` bigint(20) DEFAULT NULL,
-				`uuid` varchar(36) DEFAULT NULL,
+      CREATE TABLE `inbox` (
+        `inbox_id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `query` text,
+        `type` smallint(6) DEFAULT NULL COMMENT '1 = insert, 2 = update, 3 = delete',
+        `label` varchar(255) DEFAULT NULL,
+        `table` varchar(255) DEFAULT NULL,
+        `pk` bigint(20) DEFAULT NULL,
+        `prev_pk` bigint(20) DEFAULT NULL,
+        `uuid` varchar(36) DEFAULT NULL,
                 `last_update` double DEFAULT NULL,
-				`id_sender` int(11) DEFAULT NULL,
-				`sender_name` varchar(255) DEFAULT NULL,
-				`processed_on` datetime DEFAULT NULL,
-				`is_process` tinyint(1) DEFAULT '0',
-				`created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-				`udpated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY (`inbox_id`)
-			)
-			"""
+        `id_sender` int(11) DEFAULT NULL,
+        `sender_name` varchar(255) DEFAULT NULL,
+        `processed_on` datetime DEFAULT NULL,
+        `is_process` tinyint(1) DEFAULT '0',
+        `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        `udpated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`inbox_id`)
+      )
+      """
         )
         print("[+] Tabel Inbox => berhasil dibuat")
 
     def createTableOutbox(self):
         self.db.execute(
             """
-			CREATE TABLE `outbox` (
-				`outbox_id` bigint(20) NOT NULL AUTO_INCREMENT,
-				`query` text,
-				`type` smallint(6) DEFAULT NULL COMMENT '1 = insert, 2 = update, 3 = delete',
-				`label` varchar(255) DEFAULT NULL,
-				`table` varchar(255) DEFAULT NULL,
-				`pk` bigint(20) DEFAULT NULL,
-				`prev_pk` bigint(20) DEFAULT NULL,
-				`processed_on` datetime DEFAULT NULL,
-				`block_list` varchar(255) DEFAULT NULL,
-				`is_sent` tinyint(1) DEFAULT '0',
-				`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY (`outbox_id`)
-			)
-			"""
+      CREATE TABLE `outbox` (
+        `outbox_id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `query` text,
+        `type` smallint(6) DEFAULT NULL COMMENT '1 = insert, 2 = update, 3 = delete',
+        `label` varchar(255) DEFAULT NULL,
+        `table` varchar(255) DEFAULT NULL,
+        `pk` bigint(20) DEFAULT NULL,
+        `prev_pk` bigint(20) DEFAULT NULL,
+        `processed_on` datetime DEFAULT NULL,
+        `block_list` varchar(255) DEFAULT NULL,
+        `is_sent` tinyint(1) DEFAULT '0',
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`outbox_id`)
+      )
+      """
         )
         print("[+] Tabel Outbox berhasil dibuat")
 
     def createTableChangelog(self):
         self.db.execute(
             """
-			CREATE TABLE `changelog` (
-				`changelog_id` bigint(20) NOT NULL AUTO_INCREMENT,
-				`query` text,
-				`table` varchar(255) DEFAULT NULL,
-				`pk` bigint(20) DEFAULT NULL,
-				`prev_pk` bigint(20) DEFAULT NULL,
-				`type` tinyint(4) DEFAULT NULL,
-				`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY (`changelog_id`)
-			)
-			"""
+      CREATE TABLE `changelog` (
+        `changelog_id` bigint(20) NOT NULL AUTO_INCREMENT,
+        `query` text,
+        `table` varchar(255) DEFAULT NULL,
+        `pk` bigint(20) DEFAULT NULL,
+        `prev_pk` bigint(20) DEFAULT NULL,
+        `type` tinyint(4) DEFAULT NULL,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`changelog_id`)
+      )
+      """
         )
         print("[+] Tabel Changelog => berhasil dibuat")
 
@@ -119,24 +119,24 @@ class Init(object):
     def createTriggerChangeToOutbox(self):
         self.db.execute("DROP TRIGGER IF EXISTS changelog_to_outbox")
         query = f"""
-		CREATE
-		    TRIGGER `changelog_to_outbox` AFTER INSERT ON `changelog` 
-		    FOR EACH ROW BEGIN
-			DECLARE label VARCHAR(5) DEFAULT 'INS';
-			DECLARE blocklist VARCHAR(100) DEFAULT NULL;
-			IF NEW.type = 2 THEN
-			    SET label = 'UPD';
-			ELSEIF NEW.type = 3 THEN
-			    SET label = 'DEL';
-			END IF;
-			IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{self.dbName}' AND TABLE_NAME = 'clients') THEN
-				SELECT id_sender INTO blocklist FROM inbox WHERE `table` = NEW.table AND `type` = NEW.type AND `query` = NEW.query AND is_process = 1 ORDER BY created_at DESC LIMIT 1;
-				IF blocklist IS NOT NULL THEN
-					SET blocklist = CONCAT('.', blocklist);
-				END IF;
-			END IF;
-			INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label, blocklist);
-		END;"""
+    CREATE
+        TRIGGER `changelog_to_outbox` AFTER INSERT ON `changelog` 
+        FOR EACH ROW BEGIN
+      DECLARE label VARCHAR(5) DEFAULT 'INS';
+      DECLARE blocklist VARCHAR(100) DEFAULT NULL;
+      IF NEW.type = 2 THEN
+          SET label = 'UPD';
+      ELSEIF NEW.type = 3 THEN
+          SET label = 'DEL';
+      END IF;
+      IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{self.dbName}' AND TABLE_NAME = 'clients') THEN
+        SELECT id_sender INTO blocklist FROM inbox WHERE `table` = NEW.table AND `type` = NEW.type AND `query` = NEW.query AND is_process = 1 ORDER BY created_at DESC LIMIT 1;
+        IF blocklist IS NOT NULL THEN
+          SET blocklist = CONCAT('.', blocklist);
+        END IF;
+      END IF;
+      INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label, blocklist);
+    END;"""
         self.db.execute(query)
         print("[+] Trigger Changelog ke Outbox berhasil dibuat")
         return True
@@ -159,7 +159,7 @@ class Init(object):
     def getTableName(self):
         res = self.db.select(
             'SELECT table_name FROM information_schema.tables\
-			WHERE table_schema = "%s" AND (table_name NOT IN ("changelog", "inbox", "outbox", "clients"))'
+      WHERE table_schema = "%s" AND (table_name NOT IN ("changelog", "inbox", "outbox", "clients"))'
             % (self.dbName)
         )
         return res
@@ -167,8 +167,8 @@ class Init(object):
     def getColumnTable(self, tableName):
         res = self.db.select(
             'SELECT COLUMN_NAME\
-			FROM INFORMATION_SCHEMA.COLUMNS\
-			WHERE TABLE_SCHEMA = "%s" AND TABLE_NAME = "%s" AND COLUMN_KEY <> "PRI"'
+      FROM INFORMATION_SCHEMA.COLUMNS\
+      WHERE TABLE_SCHEMA = "%s" AND TABLE_NAME = "%s" AND COLUMN_KEY <> "PRI"'
             % (self.dbName, tableName)
         )
         return res
@@ -176,10 +176,10 @@ class Init(object):
     def getPrimaryKeyName(self, tableName):
         res = self.db.select(
             "SELECT key_column_usage.column_name\
-			FROM information_schema.key_column_usage\
-			WHERE table_schema = SCHEMA()\
-			AND constraint_name = 'PRIMARY'\
-			AND table_name = '%s'"
+      FROM information_schema.key_column_usage\
+      WHERE table_schema = SCHEMA()\
+      AND constraint_name = 'PRIMARY'\
+      AND table_name = '%s'"
             % tableName
         )
         return res[0][0]
@@ -212,7 +212,7 @@ class Init(object):
         triggerName = "after_insert_" + tableName
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
         query = f"CREATE TRIGGER `{triggerName}` AFTER INSERT ON `{tableName}` FOR EACH ROW\
-			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
+      INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
         queryValue = f'(CONCAT("INSERT INTO {tableName} ('
         columnsLength = len(columns)
         for i in range(columnsLength):
@@ -249,7 +249,7 @@ class Init(object):
         triggerName = "after_update_" + tableName
         self.db.execute("DROP TRIGGER IF EXISTS %s" % triggerName)
         query = f"CREATE TRIGGER `{triggerName}` AFTER UPDATE ON `{tableName}` FOR EACH ROW BEGIN IF NEW.{primaryKey} > 0 AND OLD.{primaryKey} > 0 THEN\
-			INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
+      INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`) VALUES"
         queryValue = f'(CONCAT("UPDATE {tableName} SET '
         columnsLength = len(columns)
         for i in range(columnsLength):
@@ -280,9 +280,9 @@ class Init(object):
         triggerName = "after_delete_" + tableName
         self.db.execute(f"DROP TRIGGER IF EXISTS {triggerName}")
         query = f'CREATE TRIGGER `{triggerName}` BEFORE DELETE ON `{tableName}` \
-			FOR EACH ROW INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`)\
-			VALUES (CONCAT("DELETE FROM {tableName} WHERE {primaryKey}=", OLD.{primaryKey}), "{tableName}", OLD.{primaryKey}, OLD.{primaryKey}, 3);\
-			'
+      FOR EACH ROW INSERT INTO changelog(`query`, `table`, `pk`, `prev_pk`, `type`)\
+      VALUES (CONCAT("DELETE FROM {tableName} WHERE {primaryKey}=", OLD.{primaryKey}), "{tableName}", OLD.{primaryKey}, OLD.{primaryKey}, 3);\
+      '
         self.db.execute(query)
         print(
             '[+] %s : Trigger "%s" => berhasil ditambahkan' % (tableName, triggerName)
@@ -407,6 +407,9 @@ class Init(object):
             print("[/] Tabel outbox => dikosongkan")
             self.truncateTable("changelog")
             print("[/] Tabel changelog => dikosongkan")
+            self.dropTrigger("changelog_to_outbox")
+            print("[/] Trigger changelog_to_outbox => dihapus")
+            self.createTriggerChangeToOutbox()
 
         # registrasi client
         while True:
