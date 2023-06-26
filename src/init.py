@@ -118,18 +118,25 @@ class Init(object):
 
     def createTriggerChangeToOutbox(self):
         self.db.execute("DROP TRIGGER IF EXISTS changelog_to_outbox")
-        query = """
-			CREATE TRIGGER `changelog_to_outbox` AFTER INSERT ON `changelog`
-			FOR EACH ROW BEGIN
-                DECLARE label VARCHAR(5) DEFAULT 'INS';
-                IF NEW.type = 2 THEN
-                    SET label = 'UPD';
-                ELSEIF NEW.type = 3 THEN
-                    SET label = 'DEL';
-                END IF;
-                INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label);
-			END;
-		"""
+        query = f"""
+		CREATE
+		    TRIGGER `changelog_to_outbox` AFTER INSERT ON `changelog` 
+		    FOR EACH ROW BEGIN
+			DECLARE label VARCHAR(5) DEFAULT 'INS';
+			DECLARE blocklist VARCHAR(100) DEFAULT NULL;
+			IF NEW.type = 2 THEN
+			    SET label = 'UPD';
+			ELSEIF NEW.type = 3 THEN
+			    SET label = 'DEL';
+			END IF;
+			IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{self.dbName}' AND TABLE_NAME = 'clients') THEN
+				SELECT id_sender INTO blocklist FROM inbox WHERE `table` = NEW.table AND `type` = NEW.type AND `query` = NEW.query AND is_process = 1 ORDER BY created_at DESC LIMIT 1;
+				IF blocklist IS NOT NULL THEN
+					SET blocklist = CONCAT('.', blocklist);
+				END IF;
+			END IF;
+			INSERT INTO outbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`, `block_list`) VALUES (NEW.query, NEW.table, NEW.pk, NEW.prev_pk, NEW.type, label, blocklist);
+		END;"""
         self.db.execute(query)
         print("[+] Trigger Changelog ke Outbox berhasil dibuat")
         return True
