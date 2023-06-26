@@ -125,7 +125,7 @@ class Processor(object):
         if not isPKExist:
             queryUpdate = f"UPDATE {event['table']} SET {pkName} = {event['pk']} WHERE {pkName} = -{event['prev_pk']}"
             self.db.update(queryUpdate)
-            optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
+            optionalLog = f"(pk: -{event['pk']} -> {event['pk']})"
             try:
                 self.db.update(queryUpdate)
                 self.updateInboxProccess(event["inbox_id"])
