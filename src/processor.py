@@ -210,16 +210,16 @@ class Processor(object):
         # mengecek pk correction status
         if self.getPkCorrectionStatus(event['table'], pkName):
             return False
-        success = self.db.update(event['query'])
         self.updateInboxProccess(event['inbox_id'])
+        success = self.db.update(event['query'])
         self.printInfo(event, success)
         return True
 
     # fucn query update for server
     ###########################################################################
     def queryUpdateServer(self, event):
-        success = self.db.update(event['query'])
         self.updateInboxProccess(event["inbox_id"])
+        success = self.db.update(event['query'])
         self.printInfo(event, success)
         return True
 
@@ -230,16 +230,16 @@ class Processor(object):
         # mengecek pk correction status
         if self.getPkCorrectionStatus(event['table'], pkName):
             return False
-        success = self.db.delete(event['query'])
         self.updateInboxProccess(event['inbox_id'])
+        success = self.db.delete(event['query'])
         self.printInfo(event, success)
         return True
 
     # fucn query delete for server
     ###########################################################################
     def queryDeleteServer(self, event):
-        success = self.db.update(event['query'])
         self.updateInboxProccess(event["inbox_id"])
+        success = self.db.update(event['query'])
         self.printInfo(event, success)
         return True
 
