@@ -84,30 +84,28 @@ class Processor(object):
     ###########################################################################
     def executeQueryInbox(self, event):
         res = False
-        # jika bertipe insert
+        # jika bertipe INS
         if event["type"] == 1:
             if self.isServer:
                 res = self.queryInsertServer(event)
             else:
                 res = self.queryInsertClient(event)
-        if event["type"] == 4:
+        # jika bertipe PRI
+        elif event["type"] == 4:
             if not self.isServer:
                 res = self.updatePrimaryKeyClient(event)
-        # jika bertipe update
-        # elif inbox[2] == 2:
-        #     # jika update memiliki label PRI
-        #     # if inbox[9] == self.label["updatePrimaryKey"]:
-        #     #     res = self.queryPrimaryKey(inbox)
-        #     if self.isServer:
-        #         res = self.queryUpdateServer(inbox)
-        #     else:
-        #         res = self.queryUpdateClient(inbox)
-        # # jika bertipe delete
-        # elif inbox[2] == 3:
-        #     if self.isServer:
-        #         res = self.queryDeleteServer(inbox)
-        #     else:
-        #         res = self.queryDeleteClient(inbox)
+        # jika bertipe UPD
+        elif event["type"] == 2:
+            if self.isServer:
+                res = self.queryUpdateServer(event)
+            else:
+                res = self.queryUpdateClient(event)
+        # jika bertipe DEL
+        elif event["type"] == 3:
+            if self.isServer:
+                res = self.queryDeleteServer(event)
+            else:
+                res = self.queryDeleteClient(event)
         return res
 
     # func update primary key
@@ -134,52 +132,6 @@ class Processor(object):
                 success = False
             self.printInfo(event, success, optionalLog)
             return success
-
-    # func query insert for client
-    ###########################################################################
-    def queryInsertClient(self, event):
-        pkName = self.getPrimaryKeyName(event["table"])
-
-        queryInsert = event["query"]
-        optionalLog = ""
-        lastId = None
-        success = False
-
-        # mengecek duplicate primary key
-        queryCount = f"SELECT COUNT({pkName}) FROM {event['table']} WHERE {pkName} = {event['pk']}"
-        isPKExist = self.db.count(queryCount)
-        if isPKExist:
-            queryInsert = self.modifyInsertQueryForClient(
-                queryInsert, event["table"], pkName, event["pk"]
-            )
-            queryUpdate = f"UPDATE {event['table']} SET {pkName} = -{event['pk']} WHERE {pkName} = {event['pk']}"
-            self.db.update(queryUpdate)
-            optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
-
-        try:
-            self.updateInboxProccess(event["inbox_id"])
-            self.db.insert(queryInsert)
-            success = True
-        except:
-            success = False
-
-        self.printInfo(event, success, optionalLog)
-        return success
-
-    def modifyInsertQueryForClient(self, query, tableName, pkName, pk):
-        # menambah kolom primary key
-        added_string = f"{pkName}, "
-        word_to_match = f"{tableName} ("
-        regex_pattern = re.escape(word_to_match)
-        query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
-
-        # menambah value primary key
-        added_string = f"'{pk}', "
-        word_to_match = "VALUES ("
-        regex_pattern = re.escape(word_to_match)
-        query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
-
-        return query
 
     # func query insert for server
     ###########################################################################
@@ -211,234 +163,111 @@ class Processor(object):
         self.printInfo(event, success, optionalLog)
         return success
 
+    # func query insert for client
+    ###########################################################################
+    def queryInsertClient(self, event):
+        pkName = self.getPrimaryKeyName(event["table"])
+
+        queryInsert = event["query"]
+        optionalLog = ""
+        success = False
+
+        # mengecek duplicate primary key
+        queryCount = f"SELECT COUNT({pkName}) FROM {event['table']} WHERE {pkName} = {event['pk']}"
+        isPKExist = self.db.count(queryCount)
+        if isPKExist:
+            queryInsert = self.modifyInsertQueryForClient(
+                queryInsert, event["table"], pkName, event["pk"]
+            )
+            queryUpdate = f"UPDATE {event['table']} SET {pkName} = -{event['pk']} WHERE {pkName} = {event['pk']}"
+            self.db.update(queryUpdate)
+            optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
+
+        try:
+            self.updateInboxProccess(event["inbox_id"])
+            self.db.insert(queryInsert)
+            success = True
+        except:
+            success = False
+
+        self.printInfo(event, success, optionalLog)
+        return success
+
+    # func to get pk corection status
+    ###########################################################################
+    def getPkCorrectionStatus(self, table, pkName):
+        minusPKCount = self.db.count(
+            f"SELECT COUNT(pkName) FROM {table} WHERE {pkName} < 0"
+        )
+        if minusPKCount > 0:
+            return True
+        return False
+
     # fucn query update for client
     ###########################################################################
-    def queryUpdateClient(self, inbox):
-        self.printInfo(inbox)
-        print("[>] QUERY: UPDATE\n%s" % inbox[1])
+    def queryUpdateClient(self, event):
+        pkName = self.getPrimaryKeyName(event["table"])
         # mengecek pk correction status
-        if self.getPkCorrectionStatus(inbox[3]):
-            print("[>] INBOX SKIPPED")
+        if self.getPkCorrectionStatus(event['table'], pkName):
             return False
-        res = self.db.update(inbox[1])
-        print("[>] Successfully executed")
-        # self.updateInboxProccessedOn(inbox[0])
-        self.updateInboxProccess(inbox[0])
+        success = self.db.update(event['query'])
+        self.updateInboxProccess(event['inbox_id'])
+        self.printInfo(event, success)
         return True
 
     # fucn query update for server
     ###########################################################################
-    def queryUpdateServer(self, inbox):
-        self.printInfo(inbox)
-        print("[>] QUERY: UPDATE\n%s" % inbox[1])
-        # mengecek pk correction status
-        self.db.update(inbox[1])
-        print("[>] Successfully executed")
-        # self.updateInboxProccessedOn(inbox[0])
-        self.updateInboxProccess(inbox[0])
+    def queryUpdateServer(self, event):
+        success = self.db.update(event['query'])
+        self.updateInboxProccess(event["inbox_id"])
+        self.printInfo(event, success)
         return True
-
-    # fucn query primary key (client only)
-    ###########################################################################
-    def queryPrimaryKey(self, inbox):
-        self.printInfo(inbox)
-        inbox = self.getInboxById(inbox[0])
-        print("[>] QUERY: PRIMARY KEY\n%s" % inbox[1])
-        # jika prev_pk sama denga prev_pk update update sebelumnya
-        if inbox[4] == inbox[5]:
-            # memperbarui inbox menggunakan id
-            inbox = self.getInboxById(inbox[0])
-            # update status dan datetime process
-            self.updateInboxProccess(inbox[0])
-            self.updateInboxProccessedOn(inbox[0])
-            self.updatePkCorrectionStatus(inbox[3], 0)
-            print("[>] Previous PK is same! PK correction end")
-            return True
-
-        # jika pk dan prev_pk dari inbox berbeda
-        elif inbox[4] != inbox[5]:
-            print("[>] Previous PK is different!")
-            # print("[*] UPDATE PRIMARY KEY is different")
-            # cek apakah primary key sudah terpakai
-            pkName = self.getPrimaryKeyName(inbox[3])
-            # find pesan PRI di tabel inbox dengan pk (next)
-            targetSwapInbox = self.getUpdatePrimaryKeyForSwap(inbox)
-            if targetSwapInbox:
-                print("[>] Target swap is found")
-                # swap
-                return self.swapUpdatePrimaryKey(inbox, targetSwapInbox)
-            else:
-                print("[>] Target swap is not found")
-                print("[>] INBOX SKIPPED")
-                return False
 
     # fucn query delete for client
     ###########################################################################
-    def queryDeleteClient(self, inbox):
-        self.printInfo(inbox)
-        print("[>] QUERY: DELETE\n%s" % inbox[1])
-        if self.getPkCorrectionStatus(inbox[3]):
-            print("[>] INBOX SKIPPED")
+    def queryDeleteClient(self, event):
+        pkName = self.getPrimaryKeyName(event["table"])
+        # mengecek pk correction status
+        if self.getPkCorrectionStatus(event['table'], pkName):
             return False
-        # melanjutkan proses
-        res = self.db.delete(inbox[1])
-        if res:
-            print("[>] Successfully executed")
-            self.updateInboxProccess(inbox[0])
-            return True
-        else:
-            print("[>] Failed to exectued")
-            self.updateInboxProccessedOn(inbox[0])
-            return False
+        success = self.db.delete(event['query'])
+        self.updateInboxProccess(event['inbox_id'])
+        self.printInfo(event, success)
+        return True
 
     # fucn query delete for server
     ###########################################################################
-    def queryDeleteServer(self, inbox):
-        self.printInfo(inbox)
-        print("[>] QUERY: DELETE\n%s" % inbox[1])
-        res = self.db.delete(inbox[1])
-        if res:
-            print("[>] Successfully executed")
-            self.updateInboxProccess(inbox[0])
-            return True
-        else:
-            print("[>] Failed to exectued")
-            self.updateInboxProccessedOn(inbox[0])
-            return False
-
-    # mendapatkan query khusus update pk dari inbox (swapping)
-    ###########################################################################
-    def getUpdatePrimaryKeyForSwap(self, inbox):
-        res = self.db.select(
-            "SELECT `inbox_id`, `query`, `type`, `table`,  `pk`, `prev_pk`, `uuid`, `id_sender`, `processed_on`, `label`, `is_process`\
-         FROM inbox WHERE `table` = '%s' AND label = '%s' AND prev_pk=%d AND is_process = 0 ORDER BY inbox_id DESC"
-            % (inbox[3], self.label["updatePrimaryKey"], inbox[4])
-        )
-        if len(res) > 0:
-            return res[0]
-        else:
-            return False
-
-    # menurkar primary key
-    ###########################################################################
-    def swapUpdatePrimaryKey(self, inbox1, inbox2):
-        print("[>] Swapping Primary Key")
-        print("[>] INBOX 1 : [ PK: %d ] [ Prev PK: %d  ]" % (inbox1[4], inbox1[5]))
-        print("[>] INBOX 2 : [ PK: %d ] [ Prev PK: %d  ]" % (inbox2[4], inbox2[5]))
-        # mengambil query dari inbox
-        queryUpdateInbox = inbox1[1]
-        # mengambil nama kolom primary key dari inbox
-        pkName = self.getPrimaryKeyName(inbox1[3])
-        # toggle kolom pk correction
-        self.updateColumnPKCorrection(inbox1[3], pkName, inbox1[5], 1)
-        # mengupdate row di tabel tujuan menjadi 0
-        query = "UPDATE %s SET %s = 0, pk_correction = 1 WHERE %s = %d" % (
-            inbox1[3],
-            pkName,
-            pkName,
-            inbox1[4],
-        )
-        self.db.update(query)
-        print(query)
-        # mengupdate pk row di tabel menjadi pk dari inbox
-        self.db.update(queryUpdateInbox)
-        print(queryUpdateInbox)
-        self.updateColumnPKCorrection(inbox1[3], pkName, inbox1[4], 0)
-        # update flag sudah diproses
-        self.updateInboxProccess(inbox1[0])
-        # update datetime kapan diproses
-        self.updateInboxProccessedOn(inbox1[0])
-        print("[>] INBOX 1 successfuly proccessed")
-        # mengupdate row yang tadinya 0 menjadi prev_pk dari inbox tadi
-        self.db.update(
-            "UPDATE %s SET %s = %d, pk_correction = 0 WHERE %s = 0"
-            % (inbox1[3], pkName, inbox1[5], pkName)
-        )
-        # membuat query baru untuk target swap inbox
-        newQueryUpdate = "UPDATE %s SET %s = %d WHERE %s = %d" % (
-            inbox1[3],
-            pkName,
-            inbox2[4],
-            pkName,
-            inbox1[5],
-        )
-        # mengupdate query, prev_pk dari target swap inbox dengan yang baru
-        query = "UPDATE inbox SET query = '%s', prev_pk = %d WHERE inbox_id = %d" % (
-            newQueryUpdate,
-            inbox1[5],
-            inbox2[0],
-        )
-        self.db.update(query)
-        # print(query)
-        print("[>] INBOX 2 :  [ Prev PK: %d  ]" % (inbox1[5]))
-        # menandai prev pk dari target swap inbox pada tabel yang tadi
-        print("[>] Swapping proccess done")
+    def queryDeleteServer(self, event):
+        success = self.db.update(event['query'])
+        self.updateInboxProccess(event["inbox_id"])
+        self.printInfo(event, success)
         return True
 
-    # menurkar primary key
-    ###########################################################################
-    def updateColumnPKCorrection(self, table, pkName, pk, value):
-        query = "UPDATE %s SET pk_correction = %d WHERE %s = %d" % (
-            table,
-            value,
-            pkName,
-            pk,
-        )
-        print(query)
-        self.db.update(query)
+
+    def modifyInsertQueryForClient(self, query, tableName, pkName, pk):
+        # menambah kolom primary key
+        added_string = f"{pkName}, "
+        word_to_match = f"{tableName} ("
+        regex_pattern = re.escape(word_to_match)
+        query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
+
+        # menambah value primary key
+        added_string = f"'{pk}', "
+        word_to_match = "VALUES ("
+        regex_pattern = re.escape(word_to_match)
+        query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
+
+        return query
+
+
 
     # update status diproses pada inbox
     ###########################################################################
     def updateInboxProccess(self, id):
-        self.db.insert("UPDATE inbox SET is_process=1 WHERE inbox_id=%d" % id)
-
-    # update waktu diproses pada inbox
-    ###########################################################################
-    def updateInboxProccessedOn(self, id):
         processedOn = time.strftime("%Y-%m-%d %H:%M:%S")
-        self.db.update(
-            "UPDATE inbox SET processed_on='%s' WHERE inbox_id=%d" % (processedOn, id)
+        self.db.insert(
+            f"UPDATE inbox SET is_process = 1, processed_on = '{processedOn}' WHERE inbox_id={id}"
         )
-        # print("[*] UPDATE Processed On Time => %s" % processedOn)
-
-    # membuat inbox update primary key
-    ###########################################################################
-    def createUpdatePrimaryKey(self, inbox, lastId):
-        pkName = self.getPrimaryKeyName(inbox[3])
-        queryUpdate = "UPDATE %s SET %s=%d WHERE %s=%d" % (
-            inbox[3],
-            pkName,
-            inbox[4],
-            pkName,
-            lastId,
-        )
-        queryInbox = (
-            "INSERT INTO inbox(`query`, `table`, `pk`, `prev_pk`, `type`, `label`) \
-        VALUES (\"%s\", '%s', '%d', '%s', %d, '%s')"
-            % (
-                queryUpdate,
-                inbox[3],
-                inbox[4],
-                lastId,
-                2,
-                self.label["updatePrimaryKey"],
-            )
-        )
-        lastId = self.db.insert(queryInbox)
-        print("[>] Inbox PRI add to inbox: [ID : %d]" % lastId)
-        # print("[*] UPDATE Primary Key is created automatically => %s" % queryUpdate)
-
-    # mendapatkan query khusus update pk dari inbox
-    ###########################################################################
-    def getUpdatePrimaryKey(self, inbox):
-        res = self.db.select(
-            "SELECT `inbox_id`, `query`, `pk`, `prev_pk` FROM inbox WHERE `table` = '%s' AND label = 'UPDATE_PRIMARY_KEY' AND pk=%d AND is_process = 0 ORDER BY inbox_id DESC"
-            % (inbox[3], inbox[4])
-        )
-        if len(res) > 0:
-            return res[0]
-        else:
-            return False
 
     # mendapatkan nama kolom primary key
     ###########################################################################
@@ -452,19 +281,6 @@ class Processor(object):
             % tableName
         )
         return res[0][0]
-
-    # update pk correction status
-    ###########################################################################
-    def getPkCorrectionStatus(self, table):
-        try:
-            return self.getPkCorrectionStatus[table]
-        except:
-            return 0
-
-    # update pk correction status
-    ###########################################################################
-    def updatePkCorrectionStatus(self, table, status):
-        self.pkCorrectionStatus[table] = status
 
     # func untuk menjalankan proccessor
     ###########################################################################
