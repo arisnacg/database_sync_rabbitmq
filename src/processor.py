@@ -197,7 +197,7 @@ class Processor(object):
     ###########################################################################
     def getPkCorrectionStatus(self, table, pkName):
         minusPKCount = self.db.count(
-            f"SELECT COUNT(pkName) FROM {table} WHERE {pkName} < 0"
+            f"SELECT COUNT({pkName}) FROM {table} WHERE {pkName} < 0"
         )
         if minusPKCount > 0:
             return True
@@ -208,7 +208,7 @@ class Processor(object):
     def queryUpdateClient(self, event):
         pkName = self.getPrimaryKeyName(event["table"])
         # mengecek pk correction status
-        if self.getPkCorrectionStatus(event['table'], pkName):
+        if self.getPkCorrectionStatus(event["table"], pkName):
             return False
         self.updateInboxProccess(event['inbox_id'])
         success = self.db.update(event['query'])
@@ -228,7 +228,7 @@ class Processor(object):
     def queryDeleteClient(self, event):
         pkName = self.getPrimaryKeyName(event["table"])
         # mengecek pk correction status
-        if self.getPkCorrectionStatus(event['table'], pkName):
+        if self.getPkCorrectionStatus(event["table"], pkName):
             return False
         self.updateInboxProccess(event['inbox_id'])
         success = self.db.delete(event['query'])
@@ -242,7 +242,6 @@ class Processor(object):
         success = self.db.update(event['query'])
         self.printInfo(event, success)
         return True
-
 
     def modifyInsertQueryForClient(self, query, tableName, pkName, pk):
         # menambah kolom primary key
@@ -258,8 +257,6 @@ class Processor(object):
         query = re.sub(regex_pattern, r"\g<0>" + added_string, query)
 
         return query
-
-
 
     # update status diproses pada inbox
     ###########################################################################
