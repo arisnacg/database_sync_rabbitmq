@@ -1,5 +1,3 @@
-import os
-import time
 import mysql.connector
 
 
@@ -36,8 +34,9 @@ class Database(object):
         cursor = self.db.cursor()
         cursor.execute(query)
         res = cursor.fetchone()
-        count = int(res[0])
-        return count
+        if res:
+            return res[0]
+        return 0
 
     def update(self, query):
         cursor = self.db.cursor()
