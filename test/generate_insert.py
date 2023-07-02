@@ -7,18 +7,17 @@ else:
     print("No arguments provided.")
     exit(1)
 
-sql = f"INSERT tb_trx(nim, waktu, nominal_ukt, flag) VALUES \n"
+start_index = 1
+if len(sys.argv) > 2:
+    start_index = int(sys.argv[2])
+sql = ""
 
 nominal_ukt = 11
 flag = 1
 
-for i in range(1, data_size + 1):
+for i in range(start_index, data_size + 1):
     waktu = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sql += f"('{i}', '{waktu}', '{nominal_ukt}', '{flag}')"
-    if i == data_size:
-        sql += ";"
-    else:
-        sql += ",\n"
+    sql += f"INSERT tb_trx(nim, waktu, nominal_ukt, flag) VALUES ('{i}', '{waktu}', '{nominal_ukt}', '{flag}');\n"
 
 file_path = f"./test/output/{data_size}_data_insert.sql"
 
