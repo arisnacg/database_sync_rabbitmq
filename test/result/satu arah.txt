@@ -1,0 +1,20 @@
+## insert 1 arah:
+- 100 data: 5 s
+- 200 data: 7 s
+- 400 data: 14 s
+- 600 data: 18 s
+- 1000 data: 28 s
+
+## update 1 arah:
+- 100 data: 4 s
+- 200 data: 8 s
+- 400 data: 15 s
+- 600 data: 20 s
+- 1000 data: 45 s
+
+## delete 1 arah:
+- 100 data: 4 s
+- 200 data: 6 s
+- 400 data: 14 s
+- 600 data: 19 s
+- 1000 data: 32 s
