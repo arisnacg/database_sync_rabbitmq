@@ -36,3 +36,5 @@ __pycache__/
 /.vagrant
 /.vagrantignore
 
+docker-compose.yml
+wordpress

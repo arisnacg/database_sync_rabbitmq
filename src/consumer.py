@@ -69,14 +69,28 @@ class Consumer(object):
 
     def insertInbox(self, body):
         query = "INSERT INTO inbox(`query`, `table`, `label`, `pk`, `prev_pk`, `type`, `id_sender`) "
-        query += f"VALUES (\"{body['query']}\", '{body['table']}', '{body['label']}', '{body['pk']}', '{body['prev_pk']}', '{body['type']}', '{body['id_sender']}')"
+        mysql_string = self.convert_to_mysql_string(body['query'])
+        query += f"VALUES ({mysql_string}, '{body['table']}', '{body['label']}', '{body['pk']}', '{body['prev_pk']}', '{body['type']}', '{body['id_sender']}')"
         lastid = self.db.insert(query)
+
         if self.isServer:
             log = f"[ID:{lastid}] {body['table']}:{body['pk']} {body['label']} <- CLIENT ID:{body['id_sender']}"
         else:
             log = f"[ID:{lastid}] {body['table']}:{body['pk']} {body['label']} <- SERVER ({self.topic})"
         print(log)
         return lastid
+
+    def convert_to_mysql_string(self, input_string):
+        # Replace single quotes with double quotes
+        double_quoted_string = input_string.replace("'", "''")
+
+        # Add backslashes before backslashes
+        escaped_string = double_quoted_string.replace("\\", "\\\\")
+
+        # Wrap the string in single quotes
+        mysql_string = "'" + escaped_string + "'"
+
+        return mysql_string
 
     def run(self):
         try:
