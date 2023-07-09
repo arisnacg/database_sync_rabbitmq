@@ -182,8 +182,8 @@ class Init(object):
 
     def alterPrimaryKey(self, tableName, pkName):
         self.db.execute("SET SQL_MODE='ALLOW_INVALID_DATES'")
-        query = f"ALTER TABLE {tableName} MODIFY COLUMN {pkName} BIGINT SIGNED"
-        self.db.execute(query)
+        # query = f"ALTER TABLE {tableName} MODIFY COLUMN {pkName} BIGINT SIGNED"
+        # self.db.execute(query)
 
     def getPrimaryKeyName(self, tableName):
         res = self.db.select(

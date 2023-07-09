@@ -179,8 +179,11 @@ class Processor(object):
                 queryInsert, event["table"], pkName, event["pk"]
             )
             queryUpdate = f"UPDATE {event['table']} SET {pkName} = -{event['pk']} WHERE {pkName} = {event['pk']}"
-            self.db.update(queryUpdate)
-            optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
+            try:
+                self.db.update(queryUpdate)
+                optionalLog = f"(pk: {event['pk']} -> -{event['pk']})"
+            except:
+                print("")
 
         try:
             self.updateInboxProccess(event["inbox_id"])
@@ -221,9 +224,12 @@ class Processor(object):
     ###########################################################################
     def queryUpdateServer(self, event):
         self.updateInboxProccess(event["inbox_id"])
-        success = self.db.update(event['query'])
-        self.printInfo(event, success)
-        return True
+        try:
+            success = self.db.update(event['query'])
+            self.printInfo(event, success)
+            return True
+        except:
+            return False
 
     # fucn query delete for client
     ###########################################################################
@@ -244,9 +250,12 @@ class Processor(object):
     ###########################################################################
     def queryDeleteServer(self, event):
         self.updateInboxProccess(event["inbox_id"])
-        success = self.db.update(event['query'])
-        self.printInfo(event, success)
-        return True
+        try:
+            success = self.db.update(event['query'])
+            self.printInfo(event, success)
+            return True
+        except:
+            return False
 
     def modifyInsertQueryForClient(self, query, tableName, pkName, pk):
         # menambah kolom primary key
