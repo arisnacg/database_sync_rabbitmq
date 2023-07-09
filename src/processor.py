@@ -141,7 +141,6 @@ class Processor(object):
         optionalLog = ""
         lastId = None
         success = False
-
         try:
             self.updateInboxProccess(event["inbox_id"])
             lastId = self.db.insert(queryInsert)
@@ -149,7 +148,7 @@ class Processor(object):
         except:
             success = False
 
-        if lastId != event["pk"]:
+        if lastId != event["pk"] and lastId != None:
             queryUpdate = ""
             blocklist = self.defaultBlocklist.replace(f".{event['id_sender']}", "")
             if blocklist == "":
@@ -211,9 +210,12 @@ class Processor(object):
         if self.getPkCorrectionStatus(event["table"], pkName):
             return False
         self.updateInboxProccess(event['inbox_id'])
-        success = self.db.update(event['query'])
-        self.printInfo(event, success)
-        return True
+        try:
+            success = self.db.update(event['query'])
+            self.printInfo(event, success)
+            return True
+        except:
+            return False
 
     # fucn query update for server
     ###########################################################################
@@ -231,9 +233,12 @@ class Processor(object):
         if self.getPkCorrectionStatus(event["table"], pkName):
             return False
         self.updateInboxProccess(event['inbox_id'])
-        success = self.db.delete(event['query'])
-        self.printInfo(event, success)
-        return True
+        try:
+            success = self.db.delete(event['query'])
+            self.printInfo(event, success)
+            return True
+        except:
+            return False
 
     # fucn query delete for server
     ###########################################################################

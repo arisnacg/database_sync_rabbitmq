@@ -180,6 +180,11 @@ class Init(object):
         )
         return res
 
+    def alterPrimaryKey(self, tableName, pkName):
+        self.db.execute("SET SQL_MODE='ALLOW_INVALID_DATES'")
+        query = f"ALTER TABLE {tableName} MODIFY COLUMN {pkName} BIGINT SIGNED"
+        self.db.execute(query)
+
     def getPrimaryKeyName(self, tableName):
         res = self.db.select(
             "SELECT key_column_usage.column_name\
@@ -209,6 +214,7 @@ class Init(object):
             # self.addPkCorrectionColumn(table[0])
             columns = self.getColumnTable(table[0])
             primaryKey = self.getPrimaryKeyName(table[0])
+            self.alterPrimaryKey(table[0], primaryKey)
             # self.createTriggerBeforeInsert(table[0], primaryKey, columns)
             self.createTriggerAfterInsert(table[0], primaryKey, columns)
             # self.createTriggerBeforeUpdate(table[0], primaryKey, columns)
