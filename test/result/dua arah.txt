@@ -1,0 +1,20 @@
+## insert 2 arah:
+- 100 data: 5 s + 11 s = 16
+- 200 data: 7 s + 15 s = 22
+- 400 data: 14 s + 16 s = 28
+- 600 data: 18 s + 17 s = 35
+- 1000 data: 28 s + 23 s = 51
+
+## update 2 arah:
+- 100 data: 4 s + 10 s = 14
+- 200 data: 8 s + 14 s = 22
+- 400 data: 15 s + 14 s = 29
+- 600 data: 20 s + 17 s = 37
+- 1000 data: 45 s + 24 s = 69
+
+## delete 2 arah:
+- 100 data: 4 s + 9 s = 13
+- 200 data: 6 s + 10 s = 16
+- 400 data: 14 s + 11 s = 25
+- 600 data: 19 s + 17 s = 36
+- 1000 data: 32 s + 26 s = 58

@@ -1,0 +1,9 @@
+- name: Remove Wordpress via Docker
+  hosts: ubuntu-servers
+  tasks:
+    # - name: Pull Wordpress image
+    #   command: docker pull wordpress:latest
+    # - name: Create wordpress directory
+    #   command: mkdir wordpress
+    - name: Remove Wordpress
+      command: docker compose down

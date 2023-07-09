@@ -2,17 +2,18 @@ version: "3.9"
 
 services:
   wordpress:
-    image: wordpress:6.2.2-fpm-alpine
-    restart: always
+    image: 1c5f5d58cc6d
     ports:
-      - 8080:80
+      - 80:80
     environment:
-      WORDPRESS_DB_HOST: host.docker.internal
+      WORDPRESS_DB_HOST: 192.168.56.1
       WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: serverpass
-      WORDPRESS_DB_NAME: ws_db
+      WORDPRESS_DB_NAME: db_ws_server
     volumes:
-      - wordpress:/var/www/html
+      - ./wordpress:/var/www/html
+
+
   # mysqldb-server:
   #   image: 1fecb86b5237
   #   hostname: mysqldb-server

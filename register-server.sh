@@ -4,7 +4,7 @@ localhost
 3306
 root
 serverpass
-demo
+server_db
 Server
 localhost
 EOF

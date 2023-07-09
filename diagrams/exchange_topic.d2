@@ -1,24 +1,23 @@
+direction: right
 server: Server Producer
 
-server-exchange: Server Exchange {
+server-exchange: Server\nTopic Exchange {
   shape: oval
 }
 
-
-client-1-queue: Client 1 Queue {
+client-1-queue: Client 1\nQueue {
   shape: queue
 }
 
-client-1-consumer: Client 1 Consumer
+client-1-consumer: Client 1\nConsumer
 
-client-2-queue: Client 2 Queue {
-
+client-2-queue: Client 2\nQueue {
   shape: queue
 }
 
-client-2-consumer: Client 2 Consumer
+client-2-consumer: Client 2\nConsumer
 
-server -> server-exchange: .1.2. {
+server -> server-exchange: .2. {
   style: {
     stroke: green
     font-color: green
@@ -27,18 +26,16 @@ server -> server-exchange: .1.2. {
   }
 }
 
-server-exchange -> client-1-queue: Yes {
+server-exchange -> client-1-queue: No {
   style: {
-
-    stroke: green
-    font-color: green
+    stroke: red
+    font-color: red
     bold: true
 
     font-size: 24
   }
 }
 server-exchange -> client-2-queue: Yes {
-
   style: {
     stroke: green
     font-color: green
@@ -47,12 +44,10 @@ server-exchange -> client-2-queue: Yes {
   }
 }
 
-
 client-1-queue <- client-1-consumer: '#.1.#' {
   style: {
-
-    stroke: green
-    font-color: green
+    stroke: red
+    font-color: red
     bold: true
     font-size: 24
   }

@@ -1,9 +1,0 @@
-- name: Deploy Wordpress via Docker
-  hosts: ubuntu-servers
-  tasks:
-    - name: Pull Wordpress image
-      command: docker pull wordpress:latest
-    - name: Create wordpress directory
-      command: mkdir wordpress
-    - name: Run Wordpress
-      command: docker run -p 80:80 1c5f5d58cc6d
